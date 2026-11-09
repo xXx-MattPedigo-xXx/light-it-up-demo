@@ -293,7 +293,7 @@ canvas.drawing{cursor:crosshair}
     </div>
     <div class="group" id="addGroup">
       <span class="group-label">Add</span>
-      <button class="btn" id="selectBtn" type="button" aria-pressed="true" data-help="tool-select">Select</button>
+      <button class="btn" id="selectBtn" type="button" aria-pressed="true" data-help="tool-select">Move / edit</button>
       <span class="group-sep" aria-hidden="true"></span>
     </div>
     <div class="group">
@@ -1009,7 +1009,7 @@ function renderHint() {
     const k = KINDS[S.mode.slice(4)];
     h.innerHTML = S.anchor
       ? `<b>${k.label}:</b> click the second point to finish. <span class="chip">Esc to drop this one</span>`
-      : `<b>${k.label}:</b> ${k.tip} <span class="chip">Stays on · Esc or Select to stop</span>`;
+      : `<b>${k.label}:</b> ${k.tip} <span class="chip">Stays on · Esc or Move / edit to stop</span>`;
     return;
   }
   if (!S.props.length) h.innerHTML = S.scaleSet ? `Pick a prop under <b>Add</b>, then click two points on the photo where it goes.` : `<b>Step 1:</b> click <b>Set scale</b> and measure something on the house so prices match real sizes. <b>Step 2:</b> add props.`;

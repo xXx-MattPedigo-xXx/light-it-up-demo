@@ -52,7 +52,7 @@
     },
     "tool-select": {
       "group": "Add props",
-      "title": "Select",
+      "title": "Move / edit",
       "summary": "Stop adding props and go back to moving and editing them.",
       "what": "Turns off whichever Add tool is on. Then click a prop to select it, drag it to move it, drag its square handles to resize it, or press Delete to remove it.",
       "when": "When you've finished adding props of one kind.",
