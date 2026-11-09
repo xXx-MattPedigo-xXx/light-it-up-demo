@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Design a Christmas light display on a photo of your house and get an itemized estimate. Prototype with example prices.">
+<style>body{margin:0;font:14px system-ui,sans-serif}</style>
+</head>
+<body>
+<title>Display Designer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three-pane workbench. Props list (left), house photo stage (center), estimate (right). Stage is always "night". */
+:root{
+  --bg:#eef0f5; --panel:#ffffff; --ink:#171b26; --muted:#5b6476; --line:#dce0e9;
+  --accent:#b86a08; --accent-soft:#f6e6cc; --accent-ink:#ffffff;
+  --sel:#2f6fe0; --warn:#a14b00; --warn-soft:#fff0dc; --ok:#1d7a46;
+  --stage:#0a0e18; --chip:#f3f4f8;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d111a; --panel:#151a25; --ink:#e7eaf1; --muted:#9aa3b5; --line:#262d3c;
+  --accent:#f0a53a; --accent-soft:#3a2a12; --accent-ink:#1a1206;
+  --sel:#6aa1ff; --warn:#ffb661; --warn-soft:#3a2810; --ok:#5fd394;
+  --stage:#06080f; --chip:#1c2230; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0d111a; --panel:#151a25; --ink:#e7eaf1; --muted:#9aa3b5; --line:#262d3c;
+  --accent:#f0a53a; --accent-soft:#3a2a12; --accent-ink:#1a1206;
+  --sel:#6aa1ff; --warn:#ffb661; --warn-soft:#3a2810; --ok:#5fd394;
+  --stage:#06080f; --chip:#1c2230; color-scheme:dark; }
+
+html,body{height:100%}
+body{background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:14px; line-height:1.4;}
+*{box-sizing:border-box}
+button,input,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--sel); outline-offset:2px}
+
+[hidden]{display:none!important}
+.app{display:grid; grid-template-rows:auto 1fr; height:100%; min-height:0}
+.view{display:grid; grid-template-rows:auto 1fr; min-height:0}
+.topbar{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding-block:10px;
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
+  background:var(--panel); border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-display); font-weight:700; font-size:19px; letter-spacing:-.01em; display:flex; align-items:center; gap:8px}
+.brand .bulb{width:10px;height:10px;border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent)}
+.brand small{font-family:var(--f-body); font-weight:500; font-size:13px; color:var(--muted)}
+.proto{margin-left:auto; font-size:12px; color:var(--muted)}
+
+.toolbar{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding-block:8px;
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
+  border-bottom:1px solid var(--line); background:var(--bg)}
+.group{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.group-label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-right:2px}
+.btn{border:1px solid var(--line); background:var(--panel); padding:6px 10px; border-radius:6px; cursor:pointer; white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--ink)}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600}
+.btn.danger{color:var(--warn)}
+.file-btn{position:relative; overflow:hidden}
+.file-btn input{position:absolute; inset:0; opacity:0; cursor:pointer}
+.chip{display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--line); font-family:var(--f-mono)}
+.chip.warn{background:var(--warn-soft); color:var(--warn); border-color:transparent; font-family:var(--f-body); font-weight:600}
+.range{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+.range input{width:90px}
+
+.work{display:grid; grid-template-columns:300px minmax(0,1fr) 340px; min-height:0}
+.pane{background:var(--panel); min-height:0; overflow:auto; display:flex; flex-direction:column}
+.pane.left{border-right:1px solid var(--line)}
+.pane.right{border-left:1px solid var(--line)}
+.pane-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:14px 16px 8px; position:sticky; top:0; background:var(--panel); z-index:1}
+.pane-head h2{font-family:var(--f-display); font-weight:600; font-size:17px; margin:0; letter-spacing:-.01em}
+.pane-head .meta{font-size:12px; color:var(--muted)}
+.pane-foot{margin-top:auto; padding:12px 16px 16px; font-size:12px; color:var(--muted); border-top:1px solid var(--line)}
+
+/* Props list */
+.plist{list-style:none; margin:0; padding:0 8px 8px}
+.prop{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:4px 10px; align-items:start; padding:9px 8px; border-radius:8px; border:1px solid transparent}
+.prop + .prop{margin-top:2px}
+.prop:hover{background:var(--chip)}
+.prop.sel{border-color:var(--sel); background:var(--chip)}
+.prop input[type=checkbox]{margin:3px 0 0; width:16px; height:16px; accent-color:var(--accent)}
+.prop-main{all:unset; cursor:pointer; min-width:0; display:flex; flex-direction:column; gap:1px}
+.pname{font-weight:600; display:flex; align-items:center; gap:7px; min-width:0}
+.pname span.t{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.swatch{flex:none; width:9px; height:9px; border-radius:50%}
+.pdesc{font-size:12px; color:var(--muted)}
+.pcost{font-family:var(--f-mono); font-size:13px; font-variant-numeric:tabular-nums; padding-top:1px}
+.prop.off .pname,.prop.off .pcost{color:var(--muted)}
+.prop.off .pcost{text-decoration:line-through}
+.editor{grid-column:2 / 4; display:grid; gap:8px; padding-top:6px}
+.editor label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.editor input[type=text]{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--panel)}
+.colors{display:flex; flex-wrap:wrap; gap:6px}
+.cbtn{width:24px; height:24px; border-radius:50%; border:2px solid var(--panel); outline:1px solid var(--line); cursor:pointer; padding:0}
+.cbtn[aria-pressed="true"]{outline:2px solid var(--sel)}
+.multi{background:conic-gradient(#ff4a4a,#ffc76b,#3fe07a,#4d8dff,#c06bff,#ff4a4a)}
+.seg{display:flex; flex-wrap:wrap; gap:6px}
+.ed-row{display:flex; gap:8px; align-items:center; justify-content:space-between}
+.empty{padding:20px 16px; color:var(--muted)}
+
+/* Stage */
+.center{display:flex; flex-direction:column; min-height:0; min-width:0; background:var(--bg)}
+.hint{display:flex; flex-wrap:wrap; gap:8px; align-items:center; align-content:center; min-height:58px; padding:8px 16px; font-size:13px; color:var(--muted)}
+.hint b{color:var(--ink)}
+.hint input[type=number]{width:72px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:var(--panel)}
+.stage-wrap{flex:1; min-height:0; padding:0 16px 16px; display:flex; align-items:flex-start; justify-content:center; overflow:auto}
+.stage{position:relative; background:var(--stage); border-radius:10px; overflow:hidden; box-shadow:0 1px 0 var(--line), 0 10px 30px rgba(0,0,0,.18); max-width:100%}
+canvas{display:block; touch-action:none; cursor:default}
+canvas.drawing{cursor:crosshair}
+
+/* Estimate */
+.est{padding:0 16px 8px}
+.eg{border-top:1px solid var(--line); padding:10px 0}
+.eg:first-child{border-top:0}
+.eg-head{all:unset; cursor:pointer; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; align-items:center; width:100%}
+.eg-head b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
+.eg.sel .eg-head b{color:var(--sel)}
+.lines{list-style:none; margin:6px 0 0 17px; padding:0; display:grid; gap:3px}
+.lines li{display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:8px; align-items:center; font-size:12.5px; color:var(--muted)}
+.lines li input{margin:0; width:14px; height:14px; accent-color:var(--accent)}
+.lines li label{cursor:pointer}
+.lines li.rm label,.lines li.rm .calc,.lines li.rm .amt{text-decoration:line-through; opacity:.6}
+.rm-note{font-size:12px; color:var(--muted); margin:6px 0 0 17px}
+.totals .rm-note{margin:4px 0 0}
+.linkbtn{border:0; background:none; padding:0; cursor:pointer; color:var(--sel); text-decoration:underline; font-size:inherit}
+.lines .calc{font-family:var(--f-mono); font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.amt{font-family:var(--f-mono); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; min-width:70px}
+.lines .amt{color:var(--ink)}
+.section-title{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:14px 0 2px}
+.opts{display:grid; gap:8px; padding:12px 16px; border-top:1px solid var(--line)}
+.opt{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; cursor:pointer}
+.opt input{margin-top:3px; accent-color:var(--accent)}
+.opt small{display:block; color:var(--muted); font-size:12px}
+.totals{padding:12px 16px 16px; border-top:1px solid var(--line); display:grid; gap:4px}
+.trow{display:flex; justify-content:space-between; gap:12px; color:var(--muted)}
+.trow.grand{color:var(--ink); align-items:baseline; margin-top:6px}
+.trow.grand span:first-child{font-family:var(--f-display); font-weight:600; font-size:16px}
+.trow.grand .amt{font-size:22px; font-weight:500}
+.fine{font-size:12px; color:var(--muted); margin:8px 0 0}
+.cta{display:grid; gap:8px; margin-top:10px}
+.notice{font-size:12.5px; padding:8px 10px; border-radius:6px; background:var(--accent-soft)}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+
+/* Site tabs */
+.tabs{display:flex; gap:4px; flex-wrap:wrap}
+.tab{padding:6px 12px; border-radius:6px; color:var(--muted); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px}
+.tab:hover{color:var(--ink); background:var(--chip)}
+.tab[aria-current="page"]{color:var(--ink); background:var(--accent-soft)}
+.badge{font-family:var(--f-mono); font-size:11px; background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:1px 7px}
+
+/* DIY shop */
+.shop-head{padding-block:14px; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:6px 24px; align-items:baseline}
+.shop-head h1{font-family:var(--f-display); font-weight:600; font-size:22px; margin:0; letter-spacing:-.01em}
+.shop-head p{margin:0; color:var(--muted); max-width:70ch}
+.shop-head .notice{flex-basis:100%}
+.shop-work{display:grid; grid-template-columns:220px minmax(0,1fr) 340px; min-height:0}
+.cats{padding:12px 8px; gap:2px}
+.cat{all:unset; cursor:pointer; padding:7px 10px; border-radius:6px; display:flex; justify-content:space-between; gap:8px}
+.cat:hover{background:var(--chip)}
+.cat:focus-visible{outline:2px solid var(--sel)}
+.cat[aria-pressed="true"]{background:var(--accent-soft); font-weight:600}
+.cat span{color:var(--muted); font-family:var(--f-mono); font-size:12px; font-weight:400}
+.products{overflow:auto; padding:16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:14px; align-content:start; grid-auto-rows:max-content; min-height:0}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:10px; display:flex; flex-direction:column; overflow:hidden}
+.thumb{height:110px; background:var(--stage)}
+.thumb svg{display:block; width:100%; height:100%}
+.card-body{padding:12px; display:flex; flex-direction:column; gap:6px; flex:1 1 auto}
+.card h3{margin:0; font-size:15px; font-weight:600}
+.card p{margin:0; font-size:12.5px; color:var(--muted)}
+.spec{font-family:var(--f-mono); font-size:11.5px; color:var(--muted)}
+.buy{margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:8px}
+.price{font-family:var(--f-mono); font-size:16px; font-variant-numeric:tabular-nums}
+.price small{display:block; font-family:var(--f-body); font-size:11px; color:var(--muted)}
+.stepper{display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:6px; overflow:hidden}
+.stepper button{border:0; background:var(--chip); width:28px; height:28px; cursor:pointer}
+.stepper span{min-width:32px; text-align:center; font-family:var(--f-mono); font-variant-numeric:tabular-nums}
+.cart{padding:0 16px 8px}
+.cline{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line)}
+.cline:first-child{border-top:0}
+.cline .nm{font-weight:600; font-size:13px}
+.cline .row2{grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px}
+
+@media (max-width:1180px){
+  .app{height:auto}
+  .work{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .center{grid-column:1 / -1; order:-1}
+  .pane.left{border-right:1px solid var(--line); border-top:1px solid var(--line)}
+  .pane.right{border-top:1px solid var(--line); border-left:0}
+  .pane{overflow:visible}
+  .stage-wrap{overflow:visible}
+  .shop-work{grid-template-columns:200px minmax(0,1fr)}
+  .shop-work .pane.right{grid-column:1 / -1}
+  .products{overflow:visible}
+}
+@media (max-width:720px){
+  .work{grid-template-columns:minmax(0,1fr)}
+  .pane.left{border-right:0}
+  .proto{margin-left:0; width:100%}
+  .shop-work{grid-template-columns:minmax(0,1fr)}
+  .cats{flex-direction:row; flex-wrap:wrap; border-bottom:1px solid var(--line)}
+  .products{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
+  .cart{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
+  .hint,.stage-wrap,.pane-head,.est,.opts,.totals,.pane-foot{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="bulb" aria-hidden="true"></span>Light-It-Up <small>Display Designer</small></div>
+    <nav class="tabs" aria-label="Site">
+      <a href="#designer" class="tab" data-view="designer">Design your display</a>
+      <a href="#shop" class="tab" data-view="shop">DIY shop <span class="badge" id="cartBadge" hidden></span></a>
+    </nav>
+    <div class="proto">Prototype · example prices · nothing is sent or charged</div>
+  </header>
+
+  <div class="view" id="viewDesigner">
+  <div class="toolbar" role="toolbar" aria-label="Designer tools">
+    <div class="group">
+      <span class="group-label">Photo</span>
+      <label class="btn file-btn">Upload house photo<input id="photoInput" type="file" accept="image/*"></label>
+      <button class="btn" id="sampleBtn" type="button">Sample house</button>
+    </div>
+    <div class="group">
+      <button class="btn" id="selectBtn" type="button" aria-pressed="true" title="Select, move and resize props (Esc)">Select</button>
+    </div>
+    <div class="group" id="addGroup">
+      <span class="group-label">Add</span>
+    </div>
+    <div class="group">
+      <span class="group-label">Scale</span>
+      <button class="btn" id="scaleBtn" type="button" aria-pressed="false">Set scale</button>
+      <span id="scaleChip" class="chip"></span>
+    </div>
+    <div class="group">
+      <label class="range" for="darken">Night<input id="darken" type="range" min="0" max="0.8" step="0.05" value="0.3"></label>
+      <label class="range" for="preview">Preview
+        <select id="preview" class="btn" style="padding:4px 6px">
+          <option value="off">Steady</option>
+          <option value="twinkle">Twinkle</option>
+          <option value="chase">Chase</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="work">
+    <aside class="pane left" aria-label="Props">
+      <div class="pane-head"><h2>Props</h2><span class="meta" id="propCount"></span></div>
+      <ul class="plist" id="plist"></ul>
+      <div class="pane-foot">Uncheck a prop to leave it out of the estimate. It stays on the house as a dashed outline so you can compare.</div>
+    </aside>
+
+    <main class="center">
+      <div class="hint" id="hint" aria-live="polite"></div>
+      <div class="stage-wrap" id="stageWrap">
+        <div class="stage" id="stage"><canvas id="cv" aria-label="House photo with light props"></canvas></div>
+      </div>
+    </main>
+
+    <aside class="pane right" aria-label="Estimate">
+      <div class="pane-head"><h2>Estimate</h2><span class="meta" id="estMeta"></span></div>
+      <div class="est" id="est"></div>
+      <div class="opts">
+        <label class="opt" for="optInstall"><input id="optInstall" type="checkbox" checked><span>Professional installation<small>Adds labor to each prop. Turn off for a DIY kit.</small></span><span class="amt" id="laborAmt"></span></label>
+        <label class="opt" for="optShow"><input id="optShow" type="checkbox"><span>Music show programming<small>Three songs sequenced in Light-It-Up for your layout.</small></span><span class="amt" id="showAmt"></span></label>
+      </div>
+      <div class="totals" id="totals"></div>
+    </aside>
+  </div>
+  </div>
+
+  <div class="view" id="viewShop" hidden>
+    <div class="shop-head">
+      <h1>DIY shop</h1>
+      <p>The same parts we install, sold in the pack sizes we buy them in. Design your display first and we'll fill the cart for you.</p>
+      <div class="notice" id="shopNotice" hidden></div>
+    </div>
+    <div class="shop-work">
+      <nav class="pane left cats" id="cats" aria-label="Product categories"></nav>
+      <main class="products" id="products" aria-label="Products"></main>
+      <aside class="pane right" aria-label="Cart">
+        <div class="pane-head"><h2>Cart</h2><span class="meta" id="cartMeta"></span></div>
+        <div class="cart" id="cart"></div>
+        <div class="totals" id="cartTotals"></div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const cents = v => Math.round(v * 100) / 100;
+const DENSITY = 3; // pixels per foot (4-inch spacing)
+
+// Example price list. In the real site this comes from the catalog table and is versioned per quote.
+const PRICE = {
+  pixel: 0.30, track: 1.25, laborFt: 2.50,
+  archFrame: 34, archLabor: 20,
+  treeKitBase: 60, treeKitPerFt: 9, treeLaborPerFt: 9,
+  matrixFramePerSqFt: 8, matrixLaborPerSqFt: 3.5,
+  wreathFrame: 26, starFrame: 32, smallLabor: 15,
+  flood: 29, floodLabor: 10,
+  bushNet: 22, bushNetLabor: 12, bushClips: 5, bushWrapLabor: 18, netSqFt: 24,
+  controller: 189, pixelsPerController: 1600,
+  psu: 48, pixelsPerPsu: 550,
+  cable: 7, showProgramming: 195,
+};
+
+const KINDS = {
+  roofline: { label: "Roofline", draw: "line", tip: "Click where the edge starts, then where it ends." },
+  window:   { label: "Window outline", draw: "box", tip: "Click one corner of the window or door, then the opposite corner." },
+  arch:     { label: "Arch", draw: "box", tip: "Click one corner of the space the arch fills, then the opposite corner." },
+  tree:     { label: "Mega tree", draw: "box", tip: "Click one top corner of the tree's space, then the opposite bottom corner." },
+  matrix:   { label: "Matrix", draw: "box", tip: "Click one corner of the panel, then the opposite corner." },
+  wreath:   { label: "Wreath", draw: "box", tip: "Click one edge of the wreath, then the opposite edge. It stays round." },
+  star:     { label: "Star", draw: "box", tip: "Click one corner of the star's space, then the opposite corner. It stays square." },
+  bush:     { label: "Bush", draw: "box", tip: "Click one corner around the bush, then the opposite corner. The circle stretches to fit." },
+  flood:    { label: "Floodlight", draw: "point", tip: "Click where each floodlight sits on the ground." },
+};
+const COLORS = {
+  warm:  { label: "Warm white", hex: "#ffc76b" },
+  cool:  { label: "Cool white", hex: "#dcecff" },
+  red:   { label: "Red", hex: "#ff4a4a" },
+  green: { label: "Green", hex: "#3fe07a" },
+  blue:  { label: "Blue", hex: "#4d8dff" },
+  multi: { label: "Multicolor", hex: "#ffc76b" },
+};
+const MULTI = ["#ff4a4a", "#3fe07a", "#4d8dff", "#ffc76b", "#c06bff"];
+
+const S = {
+  W: 1600, H: 1000, photo: null, ppf: 20, scaleSet: true, isSample: true,
+  props: [], sel: null, mode: "select", install: true, show: false, removedShared: [],
+  darken: 0.3, preview: matchMedia("(prefers-reduced-motion: reduce)").matches ? "off" : "twinkle",
+  drag: null, draft: null, scaleLine: null, nextId: 1, view: { s: 1 }, notice: "",
+};
+
+const cv = $("#cv"), ctx = cv.getContext("2d");
+
+// ---------- Sample house (stand-in for an uploaded photo) ----------
+function sampleHouse() {
+  const c = document.createElement("canvas"); c.width = 1600; c.height = 1000;
+  const g = c.getContext("2d");
+  let gr = g.createLinearGradient(0, 0, 0, 760);
+  gr.addColorStop(0, "#141a33"); gr.addColorStop(0.55, "#2c2a4d"); gr.addColorStop(1, "#5b4460");
+  g.fillStyle = gr; g.fillRect(0, 0, 1600, 760);
+  g.fillStyle = "rgba(255,255,255,.7)";
+  for (let i = 0; i < 70; i++) { const x = (i * 337) % 1600, y = (i * 191) % 330; g.fillRect(x, y, 1.6, 1.6); }
+  gr = g.createLinearGradient(0, 740, 0, 1000);
+  gr.addColorStop(0, "#1f2c24"); gr.addColorStop(1, "#111a15");
+  g.fillStyle = gr; g.fillRect(0, 740, 1600, 260);
+  // driveway and walkway
+  g.fillStyle = "#3a3d44"; poly(g, [[1050,760],[1370,760],[1530,1000],[970,1000]]);
+  g.fillStyle = "#4a4b50"; poly(g, [[600,760],[660,760],[730,1000],[530,1000]]);
+  // main house
+  g.fillStyle = "#4c5466"; g.fillRect(260, 470, 740, 290);
+  g.fillStyle = "rgba(0,0,0,.12)"; for (let y = 482; y < 760; y += 14) g.fillRect(260, y, 740, 2);
+  g.fillStyle = "#262a33"; poly(g, [[220,470],[630,300],[1040,470]]);
+  g.fillStyle = "#4c5466"; poly(g, [[300,455],[630,318],[960,455]]);
+  g.fillStyle = "rgba(0,0,0,.12)"; for (let y = 330; y < 456; y += 14) g.fillRect(300, y, 660, 2);
+  g.fillStyle = "#262a33"; poly(g, [[220,470],[630,300],[1040,470],[1040,480],[630,312],[220,480]]);
+  // garage
+  g.fillStyle = "#475063"; g.fillRect(1000, 545, 420, 215);
+  g.fillStyle = "#23272f"; poly(g, [[980,545],[1210,440],[1440,545]]);
+  g.fillStyle = "#475063"; poly(g, [[1020,535],[1210,455],[1400,535]]);
+  g.fillStyle = "#23272f"; poly(g, [[980,545],[1210,440],[1440,545],[1440,556],[1210,452],[980,556]]);
+  g.fillStyle = "#c9ccd3"; g.fillRect(1050, 600, 320, 160);
+  g.fillStyle = "rgba(0,0,0,.18)"; for (let y = 640; y < 760; y += 40) g.fillRect(1050, y, 320, 3);
+  for (let x = 1130; x < 1370; x += 80) g.fillRect(x, 600, 3, 160);
+  // windows with warm interior
+  for (const [x, y] of [[330, 540], [810, 540]]) {
+    g.fillStyle = "#e9e5da"; g.fillRect(x - 6, y - 6, 132, 112);
+    gr = g.createLinearGradient(x, y, x, y + 100); gr.addColorStop(0, "#f3cf86"); gr.addColorStop(1, "#b9853f");
+    g.fillStyle = gr; g.fillRect(x, y, 120, 100);
+    g.fillStyle = "#e9e5da"; g.fillRect(x + 58, y, 4, 100); g.fillRect(x, y + 48, 120, 4);
+  }
+  // door
+  g.fillStyle = "#e9e5da"; g.fillRect(582, 612, 96, 148);
+  g.fillStyle = "#5e2b2a"; g.fillRect(590, 620, 80, 140);
+  g.fillStyle = "#d9b25a"; g.beginPath(); g.arc(658, 695, 4, 0, 7); g.fill();
+  // bushes
+  g.fillStyle = "#18271d";
+  for (const [x, y, r] of [[300,760,42],[380,766,34],[470,762,40],[760,762,40],[850,766,34],[950,760,42]]) { g.beginPath(); g.ellipse(x, y, r * 1.3, r, 0, Math.PI, 0); g.fill(); }
+  return c;
+}
+function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); }
+
+function sampleProps() {
+  const P = [];
+  const add = (kind, name, geo, color = "warm", included = true) => P.push({ id: S.nextId++, kind, name, color, included, ...geo });
+  add("roofline", "Roofline – left", { x1: 220, y1: 470, x2: 630, y2: 300 });
+  add("roofline", "Roofline – right", { x1: 630, y1: 300, x2: 1040, y2: 470 });
+  add("roofline", "Garage peak – left", { x1: 980, y1: 545, x2: 1210, y2: 440 });
+  add("roofline", "Garage peak – right", { x1: 1210, y1: 440, x2: 1440, y2: 545 });
+  add("window", "Window – left", { x: 324, y: 534, w: 132, h: 112 }, "cool");
+  add("window", "Window – right", { x: 804, y: 534, w: 132, h: 112 }, "cool");
+  add("window", "Garage door outline", { x: 1050, y: 600, w: 320, h: 160 }, "red", false);
+  add("star", "Gable star", { x: 600, y: 345, w: 60, h: 60 });
+  add("wreath", "Door wreath", { x: 608, y: 640, w: 44, h: 44 }, "green");
+  add("tree", "Mega tree", { x: 1455, y: 470, w: 120, h: 290 }, "multi");
+  add("arch", "Walkway arch 1", { x: 570, y: 770, w: 120, h: 55 }, "multi");
+  add("arch", "Walkway arch 2", { x: 560, y: 840, w: 140, h: 62 }, "multi");
+  add("arch", "Walkway arch 3", { x: 548, y: 915, w: 164, h: 70 }, "multi");
+  add("bush", "Bush – left", { x: 412, y: 716, w: 116, h: 46, light: "net" }, "green");
+  add("bush", "Bush – right", { x: 702, y: 716, w: 116, h: 46, light: "string" }, "warm");
+  add("flood", "Floodlight – left", { x: 430, y: 775 }, "blue");
+  add("flood", "Floodlight – right", { x: 830, y: 775 }, "blue");
+  return P;
+}
+
+// ---------- Measuring and pricing ----------
+const ft = px => px / S.ppf;
+const fmtFt = v => (v < 10 ? v.toFixed(1) : Math.round(v)) + " ft";
+function ellipsePerim(a, b) { return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b))); }
+
+function measure(p) {
+  switch (p.kind) {
+    case "roofline": { const L = ft(Math.hypot(p.x2 - p.x1, p.y2 - p.y1)); const n = Math.max(2, Math.round(L * DENSITY)); return { feet: L, nodes: n, desc: `${fmtFt(L)} · ${n} pixels` }; }
+    case "window": { const w = ft(p.w), h = ft(p.h), L = 2 * (w + h); const n = Math.max(4, Math.round(L * DENSITY)); return { feet: L, nodes: n, desc: `${fmtFt(w)} × ${fmtFt(h)} · ${n} pixels` }; }
+    case "arch": { const w = ft(p.w), L = ellipsePerim(w / 2, ft(p.h)) / 2; const n = Math.max(6, Math.round(L * DENSITY)); return { w, nodes: n, desc: `${fmtFt(w)} wide · ${n} pixels` }; }
+    case "tree": { const h = ft(p.h), per = Math.max(10, Math.round(h * 3.3)); return { h, strings: 16, per, nodes: 16 * per, desc: `${fmtFt(h)} tall · 16 × ${per} pixels` }; }
+    case "matrix": { const w = ft(p.w), h = ft(p.h), cols = Math.max(4, Math.round(w * DENSITY)), rows = Math.max(4, Math.round(h * DENSITY)); return { area: w * h, cols, rows, nodes: cols * rows, desc: `${fmtFt(w)} × ${fmtFt(h)} · ${cols} × ${rows} pixels` }; }
+    case "wreath": { const L = ellipsePerim(ft(p.w) / 2, ft(p.h) / 2); const n = Math.max(8, Math.round(L * DENSITY)); return { nodes: n, desc: `${fmtFt((ft(p.w) + ft(p.h)) / 2)} across · ${n} pixels` }; }
+    case "star": { const s = Math.min(ft(p.w), ft(p.h)); const n = Math.max(10, Math.round(3.64 * s * DENSITY)); return { nodes: n, desc: `${fmtFt(s)} across · ${n} pixels` }; }
+    case "bush": {
+      const pts = bushNodes(p), w = ft(p.w), h = ft(p.h), net = p.light !== "string";
+      const nets = Math.max(1, Math.ceil((w * h * 1.6) / PRICE.netSqFt)); // front plus the wrap round the sides, in 4 x 6 ft nets
+      return { pts, nodes: pts.length, nets, net, desc: `${fmtFt(w)} × ${fmtFt(h)} · ${net ? "matrix" : "string"} · ${pts.length} pixels` };
+    }
+    case "flood": return { nodes: 0, desc: "Single-color wash light" };
+  }
+}
+
+// A bush is a circle that stretches to its box (like the desktop Circle prop).
+// String: a ring of pixels around the outline, 4 in apart. Matrix: a 4 in grid filling the circle.
+function bushNodes(p) {
+  const cx = p.x + p.w / 2, cy = p.y + p.h / 2, rx = p.w / 2, ry = p.h / 2, out = [];
+  if (p.light === "string") {
+    const n = Math.max(8, Math.round(ellipsePerim(ft(rx), ft(ry)) * DENSITY));
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; out.push([cx + rx * Math.sin(a), cy - ry * Math.cos(a)]); }
+  } else {
+    const cols = Math.max(3, Math.round(ft(p.w) * DENSITY)), rows = Math.max(3, Math.round(ft(p.h) * DENSITY));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const x = p.x + ((c + 0.5) / cols) * p.w, y = p.y + ((r + 0.5) / rows) * p.h;
+      const dx = (x - cx) / rx, dy = (y - cy) / ry;
+      if (dx * dx + dy * dy <= 1) out.push([x, y]);
+    }
+  }
+  return out;
+}
+
+function priceLines(p, m) {
+  const L = [];
+  const add = (label, qty, unit, each, labor = false) => { if (labor && !S.install) return; L.push({ key: label, label, qty, unit, each, amount: cents(qty * each), labor, removed: (p.removed || []).includes(label) }); };
+  const pixels = () => add("Pixels", m.nodes, "px", PRICE.pixel);
+  switch (p.kind) {
+    case "roofline": case "window": {
+      const f = Math.round(m.feet * 10) / 10;
+      pixels(); add("Mounting track", f, "ft", PRICE.track); add("Installation", f, "ft", PRICE.laborFt, true); break;
+    }
+    case "arch": pixels(); add("Arch frame and stakes", 1, "ea", PRICE.archFrame); add("Installation", 1, "ea", PRICE.archLabor, true); break;
+    case "tree": {
+      const h = Math.round(m.h);
+      pixels(); add("Pole, topper and anchors", 1, "ea", PRICE.treeKitBase + PRICE.treeKitPerFt * h);
+      add("Installation", h, "ft", PRICE.treeLaborPerFt, true); break;
+    }
+    case "matrix": {
+      const a = Math.round(m.area * 10) / 10;
+      pixels(); add("Panel frame", a, "sq ft", PRICE.matrixFramePerSqFt); add("Installation", a, "sq ft", PRICE.matrixLaborPerSqFt, true); break;
+    }
+    case "wreath": pixels(); add("Wreath frame", 1, "ea", PRICE.wreathFrame); add("Installation", 1, "ea", PRICE.smallLabor, true); break;
+    case "star": pixels(); add("Star frame", 1, "ea", PRICE.starFrame); add("Installation", 1, "ea", PRICE.smallLabor, true); break;
+    case "bush":
+      pixels();
+      if (m.net) { add("Net mesh, 4 × 6 ft", m.nets, "ea", PRICE.bushNet); add("Installation", m.nets, "ea", PRICE.bushNetLabor, true); }
+      else { add("Wrap clips", 1, "ea", PRICE.bushClips); add("Installation", 1, "ea", PRICE.bushWrapLabor, true); }
+      break;
+    case "flood": add("Floodlight fixture", 1, "ea", PRICE.flood); add("Installation", 1, "ea", PRICE.floodLabor, true); break;
+  }
+  return L;
+}
+
+function compute() {
+  const kept = l => !l.removed;
+  const rows = S.props.map(p => { const m = measure(p); const lines = priceLines(p, m); return { p, m, lines, subtotal: cents(lines.filter(kept).reduce((s, l) => s + l.amount, 0)) }; });
+  const inc = rows.filter(r => r.p.included);
+  // Controllers and power are sized for every pixel on the house, including pixels the customer already owns.
+  const pixels = inc.reduce((s, r) => s + r.m.nodes, 0);
+  const shared = [];
+  const addShared = (key, label, qty, unit, each) => shared.push({ key, label, qty, unit, each, amount: cents(qty * each), removed: S.removedShared.includes(key) });
+  if (pixels > 0) {
+    addShared("controller", `Pixel controller (up to ${PRICE.pixelsPerController.toLocaleString()} px each)`, Math.ceil(pixels / PRICE.pixelsPerController), "ea", PRICE.controller);
+    addShared("psu", `12 V power supply (${PRICE.pixelsPerPsu} px each)`, Math.ceil(pixels / PRICE.pixelsPerPsu), "ea", PRICE.psu);
+  }
+  if (inc.length) addShared("cables", "Cables and connectors", inc.length, "prop", PRICE.cable);
+  const propsTotal = cents(inc.reduce((s, r) => s + r.subtotal, 0));
+  const labor = cents(inc.reduce((s, r) => s + r.lines.filter(l => l.labor && kept(l)).reduce((a, l) => a + l.amount, 0), 0));
+  const sharedTotal = cents(shared.filter(kept).reduce((s, l) => s + l.amount, 0));
+  const removedCount = inc.reduce((s, r) => s + r.lines.filter(l => l.removed).length, 0) + shared.filter(l => l.removed).length;
+  const service = S.show ? PRICE.showProgramming : 0;
+  return { rows, inc, pixels, shared, propsTotal, labor, sharedTotal, removedCount, service, total: cents(propsTotal + sharedTotal + service) };
+}
+
+// ---------- Geometry for drawing (mirrors PropGeometry in LightItUp.Rendering) ----------
+function samplePath(pts, n, closed) {
+  const segs = []; let total = 0;
+  const count = closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < count; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; const l = Math.hypot(b[0] - a[0], b[1] - a[1]); segs.push([a, b, l]); total += l; }
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    let d = closed ? (k / n) * total : (n === 1 ? 0 : (k / (n - 1)) * total);
+    for (let i = 0; i < segs.length; i++) {
+      const [a, b, l] = segs[i];
+      if (d <= l || i === segs.length - 1) { const t = l ? Math.min(1, d / l) : 0; out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); break; }
+      d -= l;
+    }
+  }
+  return out;
+}
+function nodesOf(p, m) {
+  const n = m.nodes;
+  switch (p.kind) {
+    case "roofline": return samplePath([[p.x1, p.y1], [p.x2, p.y2]], n, false);
+    case "window": return samplePath([[p.x, p.y + p.h], [p.x, p.y], [p.x + p.w, p.y], [p.x + p.w, p.y + p.h]], n, true);
+    case "arch": { const out = [], cx = p.x + p.w / 2, by = p.y + p.h; for (let i = 0; i < n; i++) { const a = Math.PI - (i / (n - 1)) * Math.PI; out.push([cx + (p.w / 2) * Math.cos(a), by - p.h * Math.sin(a)]); } return out; }
+    case "wreath": { const out = [], cx = p.x + p.w / 2, cy = p.y + p.h / 2; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; out.push([cx + (p.w / 2) * Math.sin(a), cy - (p.h / 2) * Math.cos(a)]); } return out; }
+    case "star": {
+      const cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = Math.min(p.w, p.h) / 2, r = R * 0.38, pts = [];
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rad = i % 2 ? r : R; pts.push([cx + rad * Math.cos(a), cy + rad * Math.sin(a)]); }
+      return samplePath(pts, n, true);
+    }
+    case "tree": {
+      const out = [], ax = p.x + p.w / 2, ay = p.y;
+      for (let s = 0; s < m.strings; s++) { const bx = p.x + (s / (m.strings - 1)) * p.w; for (let i = 0; i < m.per; i++) { const t = (i + 1) / m.per; out.push([ax + (bx - ax) * t, ay + p.h * t]); } }
+      return out;
+    }
+    case "bush": return m.pts;
+    case "matrix": { const out = []; for (let r = 0; r < m.rows; r++) for (let c = 0; c < m.cols; c++) out.push([p.x + ((c + 0.5) / m.cols) * p.w, p.y + ((r + 0.5) / m.rows) * p.h]); return out; }
+    default: return [];
+  }
+}
+
+// ---------- Drawing ----------
+const sprites = {};
+function sprite(hex) {
+  if (sprites[hex]) return sprites[hex];
+  const c = document.createElement("canvas"); c.width = c.height = 48; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+  gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.16, hex); gr.addColorStop(0.42, hex + "66"); gr.addColorStop(1, hex + "00");
+  g.fillStyle = gr; g.fillRect(0, 0, 48, 48);
+  return (sprites[hex] = c);
+}
+function hash(i) { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+
+function resize() {
+  const wrap = $("#stageWrap");
+  const availW = wrap.clientWidth - 32;
+  const narrow = matchMedia("(max-width:1180px)").matches;
+  const availH = narrow ? Infinity : wrap.clientHeight - 16;
+  const s = Math.max(0.1, Math.min(availW / S.W, availH / S.H));
+  const w = Math.floor(S.W * s), h = Math.floor(S.H * s), dpr = window.devicePixelRatio || 1;
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  cv.width = Math.floor(w * dpr); cv.height = Math.floor(h * dpr);
+  S.view = { s, dpr };
+  draw(performance.now());
+}
+
+function draw(t) {
+  const { s, dpr } = S.view; if (!s) return;
+  ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+  ctx.clearRect(0, 0, S.W, S.H);
+  if (S.photo) ctx.drawImage(S.photo, 0, 0, S.W, S.H);
+  ctx.fillStyle = `rgba(4,6,14,${S.darken})`; ctx.fillRect(0, 0, S.W, S.H);
+  const time = t / 1000;
+  const glow = Math.max(S.ppf * 0.55, 6 / s); // about 6.6 in of glow per bulb, never smaller than 6 screen px
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of S.props) {
+    if (!p.included) continue;
+    if (p.kind === "flood") {
+      const hex = COLORS[p.color].hex;
+      const gr = ctx.createRadialGradient(p.x, p.y - 90, 10, p.x, p.y - 90, 190);
+      gr.addColorStop(0, hex + "55"); gr.addColorStop(1, hex + "00");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(p.x, p.y - 90, 150, 190, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.drawImage(sprite(hex), p.x - 14, p.y - 14, 28, 28);
+      continue;
+    }
+    const m = measure(p), pts = nodesOf(p, m);
+    for (let i = 0; i < pts.length; i++) {
+      const hex = p.color === "multi" ? MULTI[i % MULTI.length] : COLORS[p.color].hex;
+      let a = 1;
+      if (S.preview === "twinkle") a = 0.45 + 0.55 * Math.max(0, Math.sin(time * 2.2 + hash(i + p.id * 977) * 6.283));
+      else if (S.preview === "chase") a = ((i - Math.floor(time * 18)) % 10 + 10) % 10 < 4 ? 1 : 0.18;
+      ctx.globalAlpha = a;
+      ctx.drawImage(sprite(hex), pts[i][0] - glow / 2, pts[i][1] - glow / 2, glow, glow);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = "source-over";
+  // excluded props: dashed outline
+  ctx.lineWidth = 1.5 / s; ctx.setLineDash([6 / s, 5 / s]); ctx.strokeStyle = "rgba(255,255,255,.55)";
+  for (const p of S.props) if (!p.included) outline(p);
+  ctx.setLineDash([]);
+  // selection
+  const sp = S.props.find(p => p.id === S.sel);
+  if (sp) {
+    ctx.strokeStyle = "#6aa1ff"; ctx.lineWidth = 2 / s; outline(sp, 6 / s);
+    ctx.fillStyle = "#ffffff";
+    for (const h of handles(sp)) { ctx.beginPath(); ctx.rect(h.x - 5 / s, h.y - 5 / s, 10 / s, 10 / s); ctx.fill(); ctx.stroke(); }
+  }
+  // drafts
+  if (S.draft) { ctx.strokeStyle = "#ffd27a"; ctx.lineWidth = 2 / s; ctx.setLineDash([8 / s, 6 / s]); outline(S.draft); ctx.setLineDash([]); }
+  if (S.scaleLine) {
+    const l = S.scaleLine; ctx.strokeStyle = "#7ff0c0"; ctx.lineWidth = 3 / s;
+    ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+    ctx.fillStyle = "#7ff0c0"; for (const [x, y] of [[l.x1, l.y1], [l.x2, l.y2]]) { ctx.beginPath(); ctx.arc(x, y, 5 / s, 0, 7); ctx.fill(); }
+  }
+}
+function outline(p, pad = 0) {
+  ctx.beginPath();
+  if (p.kind === "roofline") { ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); }
+  else if (p.kind === "flood") ctx.arc(p.x, p.y, 16 / S.view.s + pad, 0, 7);
+  else ctx.rect(p.x - pad, p.y - pad, p.w + pad * 2, p.h + pad * 2);
+  ctx.stroke();
+}
+function handles(p) {
+  if (p.kind === "roofline") return [{ k: "a", x: p.x1, y: p.y1 }, { k: "b", x: p.x2, y: p.y2 }];
+  if (p.kind === "flood") return [];
+  return [{ k: "nw", x: p.x, y: p.y }, { k: "ne", x: p.x + p.w, y: p.y }, { k: "sw", x: p.x, y: p.y + p.h }, { k: "se", x: p.x + p.w, y: p.y + p.h }];
+}
+
+let raf = 0;
+function loop(t) { draw(t); raf = S.preview !== "off" && !S.shopOpen ? requestAnimationFrame(loop) : 0; }
+function redraw() { if (!raf) draw(performance.now()); }
+function startLoop() { if (S.preview !== "off" && !raf) raf = requestAnimationFrame(loop); }
+
+// ---------- Hit testing and pointer input ----------
+function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S.view.s, y: (e.clientY - r.top) / S.view.s }; }
+function distSeg(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy; let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)); }
+function hit(p, w) {
+  const tol = 10 / S.view.s;
+  if (p.kind === "roofline") return distSeg(w.x, w.y, p.x1, p.y1, p.x2, p.y2) < tol;
+  if (p.kind === "flood") return Math.hypot(w.x - p.x, w.y - p.y) < 18 / S.view.s;
+  return w.x >= p.x - tol && w.x <= p.x + p.w + tol && w.y >= p.y - tol && w.y <= p.y + p.h + tol;
+}
+function topHit(w) {
+  // small props first so a wreath on a door wins over the door outline
+  const hits = S.props.filter(p => hit(p, w));
+  const area = p => p.kind === "roofline" || p.kind === "flood" ? 0 : p.w * p.h;
+  return hits.sort((a, b) => area(a) - area(b))[0];
+}
+
+// Drawing tools take two points: click the first, then the second (or press, drag and release).
+// The tool stays on after each prop so several can be added in a row.
+function isTwoPointMode() { return S.mode === "scale" || (S.mode.startsWith("add:") && KINDS[S.mode.slice(4)].draw !== "point"); }
+function updateDraft(w) {
+  const a = S.anchor;
+  if (a.kind === "scale") { S.scaleLine.x2 = w.x; S.scaleLine.y2 = w.y; return; }
+  if (KINDS[a.kind].draw === "line") { S.draft = { kind: a.kind, x1: a.x0, y1: a.y0, x2: w.x, y2: w.y }; return; }
+  let bw = w.x - a.x0, bh = w.y - a.y0;
+  if (["wreath", "star"].includes(a.kind)) { const m = Math.max(Math.abs(bw), Math.abs(bh)); bw = Math.sign(bw || 1) * m; bh = Math.sign(bh || 1) * m; }
+  S.draft = { kind: a.kind, x: Math.min(a.x0, a.x0 + bw), y: Math.min(a.y0, a.y0 + bh), w: Math.abs(bw), h: Math.abs(bh) };
+}
+function finishTwoPoint(w) {
+  updateDraft(w);
+  const a = S.anchor; S.anchor = null;
+  if (a.kind === "scale") {
+    const l = S.scaleLine;
+    if (Math.hypot(l.x2 - l.x1, l.y2 - l.y1) < 10) S.scaleLine = null; else S.pendingScale = true;
+    renderHint(); redraw(); return;
+  }
+  const g = S.draft; S.draft = null;
+  const tooSmall = g.x1 !== undefined ? Math.hypot(g.x2 - g.x1, g.y2 - g.y1) < 8 : g.w < 8 || g.h < 8;
+  if (tooSmall) { renderHint(); redraw(); return; } // both clicks on the same spot: start again
+  createProp(a.kind, g);
+}
+function cancelAnchor() {
+  if (S.anchor?.kind === "scale") S.scaleLine = null;
+  S.anchor = null; S.draft = null; renderHint(); redraw();
+}
+
+cv.addEventListener("pointerdown", e => {
+  const w = toWorld(e);
+  if (S.mode.startsWith("add:") && KINDS[S.mode.slice(4)].draw === "point") { createProp(S.mode.slice(4), { x: w.x, y: w.y }); return; }
+  if (isTwoPointMode()) {
+    if (S.anchor) { finishTwoPoint(w); return; } // second click
+    cv.setPointerCapture(e.pointerId);
+    const kind = S.mode === "scale" ? "scale" : S.mode.slice(4);
+    S.anchor = { kind, x0: w.x, y0: w.y, down: true, sx: e.clientX, sy: e.clientY };
+    if (kind === "scale") { S.pendingScale = false; S.scaleLine = { x1: w.x, y1: w.y, x2: w.x, y2: w.y }; }
+    updateDraft(w); renderHint(); redraw(); return;
+  }
+  cv.setPointerCapture(e.pointerId);
+  const sp = S.props.find(p => p.id === S.sel);
+  if (sp) {
+    const h = handles(sp).find(h => Math.hypot(h.x - w.x, h.y - w.y) < 10 / S.view.s);
+    if (h) { S.drag = { type: "handle", k: h.k, p: sp, start: { ...sp } }; return; }
+  }
+  const p = topHit(w);
+  select(p ? p.id : null);
+  if (p) S.drag = { type: "move", p, x0: w.x, y0: w.y, start: { ...p } };
+});
+cv.addEventListener("pointermove", e => {
+  if (S.anchor) { updateDraft(toWorld(e)); redraw(); return; }
+  const d = S.drag; if (!d) { hoverCursor(e); return; }
+  const w = toWorld(e);
+  if (d.type === "move") {
+    const dx = w.x - d.x0, dy = w.y - d.y0, p = d.p, s0 = d.start;
+    if (p.kind === "roofline") { p.x1 = s0.x1 + dx; p.y1 = s0.y1 + dy; p.x2 = s0.x2 + dx; p.y2 = s0.y2 + dy; }
+    else { p.x = s0.x + dx; p.y = s0.y + dy; }
+    d.moved = true;
+  } else if (d.type === "handle") {
+    const p = d.p, s0 = d.start;
+    if (d.k === "a") { p.x1 = w.x; p.y1 = w.y; } else if (d.k === "b") { p.x2 = w.x; p.y2 = w.y; }
+    else {
+      const ax = d.k.includes("w") ? s0.x + s0.w : s0.x, ay = d.k.includes("n") ? s0.y + s0.h : s0.y;
+      let nx = w.x, ny = w.y;
+      if (["wreath", "star"].includes(p.kind)) { const m = Math.max(Math.abs(nx - ax), Math.abs(ny - ay)); nx = ax + Math.sign(nx - ax || 1) * m; ny = ay + Math.sign(ny - ay || 1) * m; }
+      p.x = Math.min(ax, nx); p.y = Math.min(ay, ny); p.w = Math.max(8, Math.abs(nx - ax)); p.h = Math.max(8, Math.abs(ny - ay));
+    }
+    d.moved = true;
+  }
+  renderPanes(); redraw();
+});
+cv.addEventListener("pointerup", e => {
+  if (S.anchor?.down) {
+    // Released after the first press: if the pointer travelled, it was a drag, so finish now; otherwise wait for the second click.
+    S.anchor.down = false;
+    // Compare screen positions: the canvas itself can shift when the hint text changes.
+    if (Math.hypot(e.clientX - S.anchor.sx, e.clientY - S.anchor.sy) > 6) finishTwoPoint(toWorld(e));
+    return;
+  }
+  const d = S.drag; S.drag = null;
+  if (d?.moved) renderPanes();
+});
+function hoverCursor(e) {
+  if (S.mode !== "select") return;
+  const w = toWorld(e), sp = S.props.find(p => p.id === S.sel);
+  if (sp && handles(sp).some(h => Math.hypot(h.x - w.x, h.y - w.y) < 10 / S.view.s)) cv.style.cursor = "nwse-resize";
+  else cv.style.cursor = topHit(w) ? "move" : "default";
+}
+
+// ---------- Actions ----------
+function createProp(kind, geo) {
+  const n = S.props.filter(p => p.kind === kind).length + 1;
+  const p = { id: S.nextId++, kind, name: `${KINDS[kind].label} ${n}`, color: kind === "flood" ? "blue" : kind === "bush" ? "green" : "warm", included: true, ...(kind === "bush" ? { light: "net" } : {}), ...geo };
+  S.props.push(p); select(p.id); renderHint(); // the tool stays on for the next one
+}
+function select(id) { S.sel = id; renderPanes(); redraw(); }
+function removeProp(id) { S.props = S.props.filter(p => p.id !== id); if (S.sel === id) S.sel = null; renderPanes(); redraw(); }
+function setMode(m) {
+  S.mode = m; S.draft = null; S.anchor = null;
+  if (m !== "scale") { S.scaleLine = null; S.pendingScale = false; }
+  cv.classList.toggle("drawing", m !== "select");
+  cv.style.cursor = m === "select" ? "default" : "crosshair";
+  document.querySelectorAll("[data-add]").forEach(b => b.setAttribute("aria-pressed", String(m === "add:" + b.dataset.add)));
+  $("#scaleBtn").setAttribute("aria-pressed", String(m === "scale"));
+  $("#selectBtn").setAttribute("aria-pressed", String(m === "select"));
+  renderHint(); redraw();
+}
+function loadSample() {
+  S.photo = sampleHouse(); S.W = 1600; S.H = 1000; S.ppf = 20; S.scaleSet = true; S.isSample = true;
+  S.props = sampleProps(); S.sel = null; S.removedShared = []; setMode("select"); renderAll(); resize();
+}
+function loadPhoto(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 2400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      S.photo = c; S.W = c.width; S.H = c.height;
+      S.ppf = c.width / 50; S.scaleSet = false; S.isSample = false;
+      S.props = []; S.sel = null; S.removedShared = []; setMode("select"); renderAll(); resize();
+    };
+    img.onerror = () => { S.notice = "That file could not be opened as a picture. Try a JPG or PNG."; renderHint(); };
+    img.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+
+// ---------- Panes ----------
+function swatchStyle(p) { return p.color === "multi" ? "background:conic-gradient(#ff4a4a,#ffc76b,#3fe07a,#4d8dff,#c06bff,#ff4a4a)" : `background:${COLORS[p.color].hex}`; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderList(R) {
+  const ul = $("#plist");
+  $("#propCount").textContent = `${S.props.length} on the house · ${R.inc.length} in estimate`;
+  if (!S.props.length) { ul.innerHTML = `<li class="empty">No props yet. Pick a prop under <b>Add</b>, then drag on the photo where it goes.</li>`; return; }
+  ul.innerHTML = R.rows.map(({ p, m, subtotal }) => `
+    <li class="prop ${p.id === S.sel ? "sel" : ""} ${p.included ? "" : "off"}" data-id="${p.id}">
+      <input type="checkbox" id="inc-${p.id}" data-act="inc" ${p.included ? "checked" : ""} aria-label="Include ${esc(p.name)} in the estimate">
+      <button class="prop-main" type="button" data-act="sel">
+        <span class="pname"><span class="swatch" style="${swatchStyle(p)}"></span><span class="t" id="pn-${p.id}">${esc(p.name)}</span></span>
+        <span class="pdesc">${KINDS[p.kind].label} · ${m.desc}</span>
+        <span class="pdesc">${COLORS[p.color].label}</span>
+      </button>
+      <span class="pcost">${money.format(subtotal)}</span>
+      ${p.id === S.sel ? `
+      <div class="editor">
+        <label for="nm-${p.id}">Name</label>
+        <input type="text" id="nm-${p.id}" data-act="name" value="${esc(p.name)}">
+        <label>Color</label>
+        <div class="colors">${Object.entries(COLORS).map(([k, c]) => `<button type="button" class="cbtn ${k === "multi" ? "multi" : ""}" style="${k === "multi" ? "" : "background:" + c.hex}" data-act="color" data-color="${k}" aria-label="${c.label}" title="${c.label}" aria-pressed="${p.color === k}"></button>`).join("")}</div>
+        ${p.kind === "bush" ? `<label>Light type</label>
+        <div class="seg">${[["net", "Matrix"], ["string", "String"]].map(([k, l]) => `<button type="button" class="btn" data-act="light" data-light="${k}" aria-pressed="${(p.light || "net") === k}">${l}</button>`).join("")}</div>` : ""}
+        <div class="ed-row"><span class="pdesc">Drag on the photo to move. Drag the corner squares to resize.</span><button type="button" class="btn danger" data-act="del">Delete</button></div>
+      </div>` : ""}
+    </li>`).join("");
+}
+
+function lineCalc(l) {
+  if (l.unit === "ea" && l.qty === 1) return "";
+  const q = l.unit === "px" || l.unit === "ea" || l.unit === "prop" ? l.qty.toLocaleString() : `${l.qty} ${l.unit}`;
+  return `${q} × ${money.format(l.each)}`;
+}
+function renderEstimate(R) {
+  $("#estMeta").textContent = R.pixels ? `${R.pixels.toLocaleString()} pixels` : "";
+  const el = $("#est");
+  if (!R.inc.length) { el.innerHTML = `<p class="empty" style="padding:8px 0">Check a prop in the list to add it to the estimate.</p>`; }
+  else {
+    const lineLi = (l, owner) => `<li class="${l.removed ? "rm" : ""}">
+        <input type="checkbox" id="ln-${owner}-${l.key.replace(/\W+/g, "-")}" data-owner="${owner}" data-line="${esc(l.key)}" ${l.removed ? "" : "checked"} aria-label="Include ${esc(l.label)}">
+        <label for="ln-${owner}-${l.key.replace(/\W+/g, "-")}">${l.label}</label><span class="calc">${lineCalc(l)}</span><span class="amt">${money.format(l.amount)}</span></li>`;
+    el.innerHTML = R.inc.map(({ p, lines, subtotal }) => {
+      const nRm = lines.filter(l => l.removed).length;
+      return `
+      <section class="eg ${p.id === S.sel ? "sel" : ""}">
+        <button type="button" class="eg-head" data-id="${p.id}"><span class="swatch" style="${swatchStyle(p)}"></span><b id="en-${p.id}">${esc(p.name)}</b><span class="amt">${money.format(subtotal)}</span></button>
+        <ul class="lines">${lines.map(l => lineLi(l, p.id)).join("")}</ul>
+        ${nRm ? `<div class="rm-note">${nRm} item${nRm > 1 ? "s" : ""} removed · <button type="button" class="linkbtn" data-restore="${p.id}">Put back</button></div>` : ""}
+      </section>`; }).join("") +
+      `<div class="section-title">Shared equipment</div>
+       <ul class="lines" style="margin-left:0">${R.shared.map(l => lineLi(l, "shared")).join("")}</ul>`;
+  }
+  $("#laborAmt").textContent = S.install ? money.format(R.labor) : "";
+  $("#showAmt").textContent = money.format(PRICE.showProgramming);
+  const left = S.props.length - R.inc.length;
+  $("#totals").innerHTML = `
+    <div class="trow"><span>Props (${R.inc.length})</span><span class="amt">${money.format(R.propsTotal)}</span></div>
+    <div class="trow"><span>Shared equipment</span><span class="amt">${money.format(R.sharedTotal)}</span></div>
+    ${S.show ? `<div class="trow"><span>Show programming</span><span class="amt">${money.format(R.service)}</span></div>` : ""}
+    <div class="trow grand"><span>Estimated total</span><span class="amt">${money.format(R.total)}</span></div>
+    ${R.removedCount ? `<div class="rm-note">${R.removedCount} line item${R.removedCount > 1 ? "s" : ""} removed: you'll supply or install ${R.removedCount > 1 ? "them" : "it"} yourself. <button type="button" class="linkbtn" data-restore="all">Put all back</button></div>` : ""}
+    <p class="fine">Before tax. ${left ? `${left} prop${left > 1 ? "s" : ""} left out. ` : ""}${S.scaleSet ? "" : "<b>Scale not set, so sizes and prices are rough.</b> "}Prices are examples; the final price is confirmed after a site visit.</p>
+    <div class="cta">
+      <button type="button" class="btn ${S.install ? "primary" : ""}" id="quoteBtn" ${R.inc.length ? "" : "disabled"}>Request an installation quote</button>
+      <button type="button" class="btn ${S.install ? "" : "primary"}" id="kitBtn" ${R.inc.length ? "" : "disabled"}>Buy the parts in the DIY shop</button>
+      <div class="notice" id="quoteNote" hidden>On the real site this saves your design and sends it, with the photo, to the installer. They can open it in Light-It-Up's Layout tab.</div></div>`;
+}
+function renderHint() {
+  const h = $("#hint");
+  if (S.notice) { h.innerHTML = `<b>${esc(S.notice)}</b>`; S.notice = ""; return; }
+  if (S.mode === "scale") {
+    if (S.pendingScale) {
+      const l = S.scaleLine, px = Math.hypot(l.x2 - l.x1, l.y2 - l.y1);
+      h.innerHTML = `<span>How long is that line in real life?</span><input type="number" id="scaleFt" min="1" step="0.5" value="${S.isSample ? 16 : 10}" aria-label="Length in feet"> <span>ft</span>
+        <button class="btn primary" type="button" id="scaleApply">Apply</button><button class="btn" type="button" id="scaleCancel">Cancel</button>
+        <span class="chip">${Math.round(px)} px</span>`;
+      const inp = $("#scaleFt"); inp.focus(); inp.select();
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") applyScale(); });
+      $("#scaleApply").onclick = applyScale; $("#scaleCancel").onclick = () => setMode("select");
+    } else if (S.anchor) h.innerHTML = `<b>Set scale:</b> click the other end. <span class="chip">Esc to start again</span>`;
+    else h.innerHTML = `<b>Set scale:</b> click one end of something you know the size of, then the other end. A garage door is usually 16 ft or 8 ft, a front door about 3 ft. Measure along the front wall. <span class="chip">Esc to cancel</span>`;
+    return;
+  }
+  if (S.mode.startsWith("add:")) {
+    const k = KINDS[S.mode.slice(4)];
+    h.innerHTML = S.anchor
+      ? `<b>${k.label}:</b> click the second point to finish. <span class="chip">Esc to drop this one</span>`
+      : `<b>${k.label}:</b> ${k.tip} The tool stays on so you can add more. <span class="chip">Esc or Select to stop</span>`;
+    return;
+  }
+  if (!S.props.length) h.innerHTML = S.scaleSet ? `Pick a prop under <b>Add</b>, then click two points on the photo where it goes.` : `<b>Step 1:</b> click <b>Set scale</b> and measure something on the house so prices match real sizes. <b>Step 2:</b> add props.`;
+  else h.innerHTML = S.isSample ? `Sample house. Its garage door is 16 ft wide, which sets the scale. Click a prop to select it, drag to move, <b>Delete</b> to remove.` : `Click a prop to select it, drag to move, <b>Delete</b> to remove.`;
+}
+function applyScale() {
+  const v = parseFloat($("#scaleFt").value), l = S.scaleLine;
+  if (!(v > 0)) { $("#scaleFt").focus(); return; }
+  S.ppf = Math.hypot(l.x2 - l.x1, l.y2 - l.y1) / v; S.scaleSet = true;
+  setMode("select"); renderAll();
+}
+function renderScaleChip() {
+  const c = $("#scaleChip");
+  if (S.scaleSet) { c.className = "chip"; c.textContent = `1 ft = ${S.ppf.toFixed(1)} px`; }
+  else { c.className = "chip warn"; c.textContent = "Not set"; }
+}
+function renderPanes() { const R = compute(); renderList(R); renderEstimate(R); }
+function renderAll() { renderPanes(); renderHint(); renderScaleChip(); }
+
+// ---------- DIY shop ----------
+const CATS = { pixels: "Pixels", mounting: "Mounting", frames: "Prop frames and kits", bushes: "Bush wraps", lights: "Floodlights", controllers: "Controllers", power: "Power", cables: "Cables and connectors", shows: "Programmed shows" };
+const PRODUCTS = [
+  { sku: "PIX-50", cat: "pixels", name: "12 V bullet pixels, string of 50", desc: "Weatherproof RGB bullet pixels. Push them into mounting track or a coroplast prop.", spec: "50 px · 4 in spacing · 16.7 ft", price: 15, unit: "string" },
+  { sku: "TRK-8", cat: "mounting", name: "Pixel mounting track, 8 ft", desc: "UV-stable channel that holds bullet pixels straight along rooflines and windows.", spec: "8 ft · 24 holes", price: 10, unit: "stick" },
+  { sku: "CLIP-25", cat: "mounting", name: "Gutter clips, pack of 25", desc: "Clip mounting track to gutters and shingles without drilling.", spec: "25 clips · about 25 ft of track", price: 6, unit: "pack" },
+  { sku: "ARCH-4", cat: "frames", shape: "arch", w: 4, name: "Arch frame and stakes, 4 ft", desc: "Powder-coated frame for a pixel arch. Pixels sold separately.", spec: "4 ft wide · 2 ft tall", price: 28, unit: "arch" },
+  { sku: "ARCH-6", cat: "frames", shape: "arch", w: 6, name: "Arch frame and stakes, 6 ft", desc: "Powder-coated frame for a pixel arch. Pixels sold separately.", spec: "6 ft wide · 3 ft tall", price: 34, unit: "arch" },
+  { sku: "ARCH-8", cat: "frames", shape: "arch", w: 8, name: "Arch frame and stakes, 8 ft", desc: "Powder-coated frame for a pixel arch. Pixels sold separately.", spec: "8 ft wide · 4 ft tall", price: 42, unit: "arch" },
+  { sku: "TREE-12", cat: "frames", shape: "tree", h: 12, name: "Mega tree kit, 12 ft", desc: "Pole, topper ring, bottom ring and ground anchors for 16 strings.", spec: "12 ft · 16 strings", price: 168, unit: "kit" },
+  { sku: "TREE-15", cat: "frames", shape: "tree", h: 15, name: "Mega tree kit, 15 ft", desc: "Pole, topper ring, bottom ring and ground anchors for 16 strings.", spec: "15 ft · 16 strings", price: 195, unit: "kit" },
+  { sku: "TREE-18", cat: "frames", shape: "tree", h: 18, name: "Mega tree kit, 18 ft", desc: "Pole, topper ring, bottom ring and ground anchors for 16 strings.", spec: "18 ft · 16 strings", price: 222, unit: "kit" },
+  { sku: "WRE-24", cat: "frames", shape: "wreath", name: "Wreath frame, 24 in", desc: "Pre-drilled ring for pixels, with a hanger for doors.", spec: "24 in · holds 20–30 px", price: 26, unit: "frame" },
+  { sku: "STAR-36", cat: "frames", shape: "star", name: "Star frame, 36 in", desc: "Five-point star outline, pre-drilled for pixels.", spec: "36 in · holds about 33 px", price: 32, unit: "frame" },
+  { sku: "MTX-4", cat: "frames", shape: "matrix", name: "Matrix panel frame, 2 × 2 ft", desc: "Grid panel that bolts to its neighbours to build a pixel matrix of any size.", spec: "2 × 2 ft · 36 px at 4 in", price: 32, unit: "panel" },
+  { sku: "NET-46", cat: "bushes", shape: "bushnet", name: "Pixel net mesh, 4 × 6 ft", desc: "Black mesh that holds pixels on a 4 in grid. Drape it over a bush for the net look.", spec: "4 × 6 ft · holds up to 216 px", price: 22, unit: "net" },
+  { sku: "BUSH-CLIP", cat: "bushes", shape: "bushwrap", name: "Bush wrap clips, pack of 20", desc: "Hold a pixel string in a neat ring around the outline of a bush.", spec: "20 clips · one bush", price: 5, unit: "pack" },
+  { sku: "FLOOD-RGB", cat: "lights", name: "RGB floodlight", desc: "Washes a wall or tree in any color. Ground stake included.", spec: "30 W · DMX/pixel input", price: 29, unit: "light" },
+  { sku: "CTL-16", cat: "controllers", name: "16-output pixel controller", desc: "E1.31 and DDP over Ethernet. Works with Light-It-Up out of the box.", spec: "16 outputs · up to 1,600 px", price: 189, unit: "controller" },
+  { sku: "PSU-350", cat: "power", name: "12 V 350 W power supply", desc: "Weatherproof-box ready supply with fused outputs.", spec: "12 V · 29 A · about 550 px", price: 48, unit: "supply" },
+  { sku: "CBL-KIT", cat: "cables", name: "Cable and connector kit", desc: "Everything to connect one prop to the controller.", spec: "15 ft extension · pigtails · T-connector", price: 7, unit: "prop" },
+  { sku: "SHOW-3", cat: "shows", name: "Programmed music show, 3 songs", desc: "We sequence three songs in Light-It-Up for your exact layout and send you the show files.", spec: "3 songs · your layout", price: 195, unit: "show" },
+];
+const bySku = Object.fromEntries(PRODUCTS.map(p => [p.sku, p]));
+let cart = {};
+try { cart = JSON.parse(localStorage.getItem("lightitup-cart") || "{}") || {}; } catch { cart = {}; }
+let shopCat = "all";
+
+function glowDot(x, y, c, r = 3.2) { return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 2.6).toFixed(1)}" fill="${c}" opacity=".18"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${c}"/>`; }
+function thumb(p) {
+  let s = "";
+  switch (p.shape || p.cat) {
+    case "pixels": for (let i = 0; i < 17; i++) s += glowDot(24 + i * 12, 55 + 18 * Math.sin(i / 2.2), MULTI[i % 5]); break;
+    case "mounting": s += `<rect x="20" y="48" width="200" height="14" rx="3" fill="#5a6070"/>`; for (let x = 30; x <= 210; x += 12) s += glowDot(x, 55, "#ffc76b", 2.6); break;
+    case "arch": for (let i = 0; i <= 14; i++) { const a = Math.PI - (i / 14) * Math.PI; s += glowDot(120 + 80 * Math.cos(a), 95 - 72 * Math.sin(a), MULTI[i % 5]); } break;
+    case "tree": for (let k = 0; k < 9; k++) for (let i = 1; i <= 6; i++) { const t = i / 6; s += glowDot(120 + (60 + k * 15 - 120) * t, 10 + 90 * t, MULTI[(k + i) % 5], 2.4); } break;
+    case "wreath": for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; s += glowDot(120 + 38 * Math.sin(a), 55 - 38 * Math.cos(a), i % 4 ? "#3fe07a" : "#ff4a4a", 2.6); } break;
+    case "star": { const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 18 : 46; pts.push([120 + r * Math.cos(a), 58 + r * Math.sin(a)]); } for (const [x, y] of samplePath(pts, 30, true)) s += glowDot(x, y, "#ffc76b", 2.4); break; }
+    case "matrix": for (let r = 0; r < 6; r++) for (let c = 0; c < 10; c++) s += glowDot(66 + c * 12, 25 + r * 12, `hsl(${(c * 30 + r * 20) % 360} 90% 62%)`, 2.4); break;
+    case "bushnet": case "bushwrap": {
+      s += `<ellipse cx="120" cy="56" rx="78" ry="44" fill="#18271d"/>`;
+      if (p.shape === "bushnet") { for (let y = 16; y < 100; y += 9) for (let x = 44; x < 200; x += 9) { const dx = (x - 120) / 76, dy = (y - 56) / 42; if (dx * dx + dy * dy <= 1) s += glowDot(x, y, "#3fe07a", 2); } }
+      else for (let i = 0; i < 36; i++) { const a = (i / 36) * Math.PI * 2; s += glowDot(120 + 76 * Math.sin(a), 56 - 42 * Math.cos(a), "#ffc76b", 2.4); }
+      break;
+    }
+    case "lights": s += `<ellipse cx="120" cy="45" rx="70" ry="40" fill="#4d8dff" opacity=".22"/><ellipse cx="120" cy="55" rx="34" ry="24" fill="#4d8dff" opacity=".3"/><rect x="104" y="80" width="32" height="18" rx="3" fill="#2a2f3a"/>` + glowDot(120, 82, "#9cc0ff", 4); break;
+    case "controllers": s += `<rect x="55" y="22" width="130" height="66" rx="5" fill="#173b2d" stroke="#2f6b52"/>`; for (let i = 0; i < 16; i++) s += `<rect x="${62 + i * 7.6}" y="74" width="5" height="9" fill="#d7dbe3"/>`; s += glowDot(170, 32, "#3fe07a", 2.4) + `<rect x="70" y="34" width="44" height="26" rx="2" fill="#0f2a20"/>`; break;
+    case "power": s += `<rect x="70" y="28" width="100" height="54" rx="4" fill="#5d6370"/><polygon points="124,36 104,60 118,60 112,76 136,50 122,50" fill="#f0a53a"/>`; break;
+    case "cables": s += `<path d="M20 70 C 70 10, 120 100, 170 40 S 210 40, 220 50" fill="none" stroke="#3a3f4b" stroke-width="7" stroke-linecap="round"/><rect x="12" y="62" width="14" height="16" rx="3" fill="#8b93a3"/><rect x="214" y="42" width="14" height="16" rx="3" fill="#8b93a3"/>`; break;
+    case "shows": for (let i = 0; i < 18; i++) { const h = 10 + 60 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)); s += `<rect x="${30 + i * 10.5}" y="${90 - h}" width="6" height="${h.toFixed(1)}" rx="2" fill="${MULTI[i % 5]}" opacity=".85"/>`; } break;
+  }
+  return `<svg viewBox="0 0 240 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${s}</svg>`;
+}
+const stepper = sku => `<span class="stepper"><button type="button" data-dec="${sku}" aria-label="One fewer">−</button><span>${cart[sku]}</span><button type="button" data-inc="${sku}" aria-label="One more">+</button></span>`;
+
+function renderShop() {
+  const counts = {}; PRODUCTS.forEach(p => counts[p.cat] = (counts[p.cat] || 0) + 1);
+  $("#cats").innerHTML = [["all", "All products", PRODUCTS.length], ...Object.entries(CATS).map(([k, v]) => [k, v, counts[k] || 0])]
+    .map(([k, v, n]) => `<button type="button" class="cat" data-cat="${k}" aria-pressed="${shopCat === k}">${v}<span>${n}</span></button>`).join("");
+  $("#products").innerHTML = PRODUCTS.filter(p => shopCat === "all" || p.cat === shopCat).map(p => `
+    <article class="card">
+      <div class="thumb">${thumb(p)}</div>
+      <div class="card-body">
+        <h3>${p.name}</h3><p>${p.desc}</p><div class="spec">${p.sku} · ${p.spec}</div>
+        <div class="buy"><div class="price">${money.format(p.price)}<small>per ${p.unit}</small></div>
+          ${cart[p.sku] ? stepper(p.sku) : `<button type="button" class="btn primary" data-add-sku="${p.sku}">Add to cart</button>`}</div>
+      </div>
+    </article>`).join("");
+  const n = $("#shopNotice"); n.hidden = !S.shopNotice; n.innerHTML = S.shopNotice || "";
+  renderCart();
+}
+function renderCart() {
+  const lines = PRODUCTS.filter(p => cart[p.sku] > 0);
+  const count = lines.reduce((s, p) => s + cart[p.sku], 0);
+  const total = cents(lines.reduce((s, p) => s + cart[p.sku] * p.price, 0));
+  const badge = $("#cartBadge"); badge.hidden = !count; badge.textContent = count;
+  $("#cartMeta").textContent = count ? `${count} item${count > 1 ? "s" : ""}` : "";
+  $("#cart").innerHTML = lines.length ? lines.map(p => `
+    <div class="cline"><span class="nm">${p.name}</span><span class="amt">${money.format(cents(cart[p.sku] * p.price))}</span>
+      <div class="row2"><span class="spec">${cart[p.sku]} × ${money.format(p.price)}</span>${stepper(p.sku)}</div></div>`).join("")
+    : `<p class="empty" style="padding:8px 0">Your cart is empty. Add parts from the list, or design your display and choose <b>Buy the parts in the DIY shop</b>.</p>`;
+  $("#cartTotals").innerHTML = `
+    <div class="trow"><span>Shipping</span><span>At checkout</span></div>
+    <div class="trow grand"><span>Subtotal</span><span class="amt">${money.format(total)}</span></div>
+    <p class="fine">Before tax and shipping. Prices are examples.</p>
+    <div class="cta"><button type="button" class="btn primary" id="checkoutBtn" ${count ? "" : "disabled"}>Checkout</button>
+      <button type="button" class="btn" id="clearBtn" ${count ? "" : "disabled"}>Empty cart</button>
+      <div class="notice" id="checkoutNote" hidden>On the real site this goes to a secure checkout for payment and shipping.</div></div>`;
+  try { localStorage.setItem("lightitup-cart", JSON.stringify(cart)); } catch { /* storage unavailable */ }
+}
+
+// Turns the design into whole packs and standard sizes: the DIY bill of materials.
+function designKit(R) {
+  const q = {}, add = (sku, n) => { if (n > 0) q[sku] = (q[sku] || 0) + n; };
+  const sized = (list, v) => (list.find(p => (p.w || p.h) >= v - 0.25) || list[list.length - 1]).sku;
+  const arches = PRODUCTS.filter(p => p.shape === "arch"), trees = PRODUCTS.filter(p => p.shape === "tree");
+  // Lines the customer removed in the estimate are parts they already own, so they stay out of the cart too.
+  let px = 0, trackFt = 0;
+  for (const { p, m } of R.inc) {
+    const has = key => !(p.removed || []).includes(key);
+    if (has("Pixels")) px += m.nodes;
+    if (p.kind === "roofline" || p.kind === "window") { if (has("Mounting track")) trackFt += m.feet; }
+    else if (p.kind === "arch") { if (has("Arch frame and stakes")) add(sized(arches, m.w), 1); }
+    else if (p.kind === "tree") { if (has("Pole, topper and anchors")) add(sized(trees, m.h), 1); }
+    else if (p.kind === "wreath") { if (has("Wreath frame")) add("WRE-24", 1); }
+    else if (p.kind === "star") { if (has("Star frame")) add("STAR-36", 1); }
+    else if (p.kind === "matrix") { if (has("Panel frame")) add("MTX-4", Math.ceil(m.area / 4)); }
+    else if (p.kind === "bush") { if (m.net) { if (has("Net mesh, 4 × 6 ft")) add("NET-46", m.nets); } else if (has("Wrap clips")) add("BUSH-CLIP", 1); }
+    else if (p.kind === "flood") { if (has("Floodlight fixture")) add("FLOOD-RGB", 1); }
+  }
+  const sharedKept = key => !S.removedShared.includes(key);
+  add("PIX-50", Math.ceil(px / 50));
+  add("TRK-8", Math.ceil(trackFt / 8));
+  add("CLIP-25", Math.ceil(trackFt / 25));
+  if (R.pixels) {
+    if (sharedKept("controller")) add("CTL-16", Math.ceil(R.pixels / PRICE.pixelsPerController));
+    if (sharedKept("psu")) add("PSU-350", Math.ceil(R.pixels / PRICE.pixelsPerPsu));
+  }
+  if (sharedKept("cables")) add("CBL-KIT", R.inc.length);
+  if (S.show) add("SHOW-3", 1);
+  return q;
+}
+function fillCartFromDesign() {
+  const R = compute(); cart = designKit(R);
+  const items = Object.values(cart).reduce((a, b) => a + b, 0);
+  S.shopNotice = `Cart filled from your design: ${R.inc.length} props became ${items} items. Parts come in whole packs and standard sizes, so the total is a little different from the estimate. <a href="#designer">Back to the design</a>`;
+  shopCat = "all"; location.hash = "#shop";
+}
+function route() {
+  const shop = location.hash === "#shop";
+  S.shopOpen = shop;
+  $("#viewShop").hidden = !shop; $("#viewDesigner").hidden = shop;
+  document.querySelectorAll(".tab").forEach(t => t.dataset.view === (shop ? "shop" : "designer") ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  if (shop) { cancelAnimationFrame(raf); raf = 0; renderShop(); }
+  else { S.shopNotice = ""; renderCart(); resize(); startLoop(); }
+}
+$("#viewShop").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.cat) { shopCat = t.dataset.cat; renderShop(); return; }
+  if (t.dataset.addSku) cart[t.dataset.addSku] = 1;
+  else if (t.dataset.inc) cart[t.dataset.inc]++;
+  else if (t.dataset.dec) { if (--cart[t.dataset.dec] <= 0) delete cart[t.dataset.dec]; }
+  else if (t.id === "checkoutBtn") { $("#checkoutNote").hidden = false; return; }
+  else if (t.id === "clearBtn") { if (!t.dataset.armed) { t.dataset.armed = "1"; t.textContent = "Click again to empty the cart"; return; } cart = {}; }
+  else return;
+  renderShop();
+});
+
+// ---------- Wiring ----------
+const addGroup = $("#addGroup");
+for (const [k, v] of Object.entries(KINDS)) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.dataset.add = k; b.textContent = v.label; b.setAttribute("aria-pressed", "false");
+  b.onclick = () => setMode(S.mode === "add:" + k ? "select" : "add:" + k);
+  addGroup.appendChild(b);
+}
+$("#scaleBtn").onclick = () => setMode(S.mode === "scale" ? "select" : "scale");
+$("#selectBtn").onclick = () => setMode("select");
+$("#sampleBtn").onclick = loadSample;
+$("#photoInput").onchange = e => { const f = e.target.files[0]; if (f) loadPhoto(f); e.target.value = ""; };
+$("#darken").oninput = e => { S.darken = +e.target.value; redraw(); };
+const prevSel = $("#preview"); prevSel.value = S.preview;
+prevSel.onchange = e => { S.preview = e.target.value; if (S.preview === "off") { cancelAnimationFrame(raf); raf = 0; redraw(); } else startLoop(); };
+$("#optInstall").onchange = e => { S.install = e.target.checked; renderPanes(); };
+$("#optShow").onchange = e => { S.show = e.target.checked; renderPanes(); };
+
+$("#plist").addEventListener("click", e => {
+  const li = e.target.closest(".prop"); if (!li) return;
+  const id = +li.dataset.id, p = S.props.find(x => x.id === id), act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "inc") { p.included = e.target.checked; renderPanes(); redraw(); }
+  else if (act === "sel") select(S.sel === id ? null : id);
+  else if (act === "color") { p.color = e.target.closest("[data-color]").dataset.color; renderPanes(); redraw(); }
+  else if (act === "light") { p.light = e.target.closest("[data-light]").dataset.light; p.removed = []; renderPanes(); redraw(); }
+  else if (act === "del") removeProp(id);
+});
+$("#plist").addEventListener("input", e => {
+  if (e.target.dataset.act !== "name") return;
+  const id = +e.target.closest(".prop").dataset.id, p = S.props.find(x => x.id === id);
+  p.name = e.target.value;
+  const a = document.getElementById("pn-" + id), b = document.getElementById("en-" + id);
+  if (a) a.textContent = p.name; if (b) b.textContent = p.name;
+});
+$("#est").addEventListener("click", e => { const h = e.target.closest(".eg-head"); if (h) select(+h.dataset.id); });
+$("#est").addEventListener("change", e => {
+  const t = e.target; if (!t.dataset.line) return;
+  const key = t.dataset.line;
+  const list = t.dataset.owner === "shared" ? S.removedShared : (S.props.find(p => p.id === +t.dataset.owner).removed ||= []);
+  const i = list.indexOf(key);
+  if (t.checked && i >= 0) list.splice(i, 1); else if (!t.checked && i < 0) list.push(key);
+  renderPanes();
+  document.getElementById(t.id)?.focus();
+});
+function restoreLines(which) {
+  if (which === "all") { S.removedShared = []; S.props.forEach(p => p.removed = []); }
+  else { const p = S.props.find(x => x.id === +which); if (p) p.removed = []; }
+  renderPanes();
+}
+$("#est").addEventListener("click", e => { const b = e.target.closest("[data-restore]"); if (b) restoreLines(b.dataset.restore); });
+$("#totals").addEventListener("click", e => {
+  const b = e.target.closest("[data-restore]"); if (b) { restoreLines(b.dataset.restore); return; }
+  if (e.target.id === "quoteBtn") $("#quoteNote").hidden = false;
+  else if (e.target.id === "kitBtn") fillCartFromDesign();
+});
+
+document.addEventListener("keydown", e => {
+  if (S.shopOpen) return;
+  const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName) && document.activeElement.type !== "checkbox";
+  if (e.key === "Escape") { if (S.anchor) cancelAnchor(); else setMode("select"); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && S.sel && !typing) { e.preventDefault(); removeProp(S.sel); }
+});
+
+new ResizeObserver(() => resize()).observe($("#stageWrap"));
+loadSample();
+window.addEventListener("hashchange", route);
+route();
+})();
+</script>
+</body>
+</html>
