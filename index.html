@@ -79,6 +79,8 @@ button,input,select{font:inherit; color:inherit}
 
 /* Props list */
 .list-tools{display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; padding:0 16px 8px; font-size:12.5px; color:var(--muted); position:sticky; top:44px; background:var(--panel); z-index:1}
+.list-tools .confirm{flex-basis:100%; color:var(--ink); padding:4px 0}
+.linkbtn.danger{color:var(--warn)}
 .list-tools .joke{flex-basis:100%; font-size:11.5px; font-style:italic}
 .list-tools .linkbtn:disabled{color:var(--muted); text-decoration:none; cursor:default; opacity:.6}
 .plist{list-style:none; margin:0; padding:0 8px 8px}
@@ -262,6 +264,11 @@ canvas.drawing{cursor:crosshair}
         <button type="button" class="linkbtn" id="selectAllBtn">Select all</button>
         <span aria-hidden="true">·</span>
         <button type="button" class="linkbtn" id="unselectAllBtn">Unselect all</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="linkbtn" id="clearAllBtn">Clear all</button>
+        <span class="confirm" id="clearConfirm" hidden>Remove all <b id="clearCount"></b> props from the house?
+          <button type="button" class="linkbtn danger" id="clearYes">Remove</button> ·
+          <button type="button" class="linkbtn" id="clearNo">Cancel</button></span>
         <span class="joke">Unselect all button, copyright John Pedigo 2026 all rights reserved.</span>
       </div>
       <ul class="plist" id="plist"></ul>
@@ -806,7 +813,7 @@ function hoverCursor(e) {
 function createProp(kind, geo) {
   const n = S.props.filter(p => p.kind === kind).length + 1;
   const p = { id: S.nextId++, kind, name: `${KINDS[kind].label} ${n}`, color: kind === "flood" ? "blue" : kind === "bush" ? "green" : "warm", included: true, ...(kind === "bush" ? { light: "net" } : {}), ...geo };
-  S.props.push(p); select(p.id); renderHint(); // the tool stays on for the next one
+  S.cleared = null; S.props.push(p); select(p.id); renderHint(); // the tool stays on for the next one
 }
 function select(id) { S.sel = id; renderPanes(); redraw(); }
 function removeProp(id) { S.props = S.props.filter(p => p.id !== id); if (S.sel === id) S.sel = null; renderPanes(); redraw(); }
@@ -822,7 +829,7 @@ function setMode(m) {
 }
 function loadSample() {
   S.photo = sampleHouse(); S.W = 1600; S.H = 1000; S.ppf = 20; S.scaleSet = true; S.isSample = true;
-  S.props = sampleProps(); S.sel = null; S.removedShared = []; setMode("select"); renderAll(); resize();
+  S.props = sampleProps(); S.sel = null; S.removedShared = []; S.cleared = null; setMode("select"); renderAll(); resize();
 }
 function loadPhoto(file) {
   const r = new FileReader();
@@ -834,7 +841,7 @@ function loadPhoto(file) {
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
       S.photo = c; S.W = c.width; S.H = c.height;
       S.ppf = c.width / 50; S.scaleSet = false; S.isSample = false;
-      S.props = []; S.sel = null; S.removedShared = []; setMode("select"); renderAll(); resize();
+      S.props = []; S.sel = null; S.removedShared = []; S.cleared = null; setMode("select"); renderAll(); resize();
     };
     img.onerror = () => { S.notice = "That file could not be opened as a picture. Try a JPG or PNG."; renderHint(); };
     img.src = r.result;
@@ -852,7 +859,12 @@ function renderList(R) {
   $("#listTools").hidden = !S.props.length;
   $("#selectAllBtn").disabled = R.inc.length === S.props.length;
   $("#unselectAllBtn").disabled = R.inc.length === 0;
-  if (!S.props.length) { ul.innerHTML = `<li class="empty">No props yet. Pick a prop under <b>Add</b>, then click two points on the photo where it goes.</li>`; return; }
+  if (!S.props.length) {
+    ul.innerHTML = S.cleared
+      ? `<li class="empty">All ${S.cleared.props.length} props removed. <button type="button" class="linkbtn" id="undoClearBtn">Undo</button></li>`
+      : `<li class="empty">No props yet. Pick a prop under <b>Add</b>, then click two points on the photo where it goes.</li>`;
+    return;
+  }
   ul.innerHTML = R.rows.map(({ p, m, subtotal }) => `
     <li class="prop ${p.id === S.sel ? "sel" : ""} ${p.included ? "" : "off"}" data-id="${p.id}">
       <input type="checkbox" id="inc-${p.id}" data-act="inc" ${p.included ? "checked" : ""} aria-label="Include ${esc(p.name)} in the estimate">
@@ -1120,6 +1132,20 @@ $("#selectBtn").onclick = () => setMode("select");
 function includeAll(on) { S.props.forEach(p => p.included = on); renderPanes(); redraw(); }
 $("#selectAllBtn").onclick = () => includeAll(true);
 $("#unselectAllBtn").onclick = () => includeAll(false);
+// Clear all removes every prop from the house, after an inline confirmation, and can be undone.
+function showClearConfirm(on) { $("#clearConfirm").hidden = !on; $("#clearCount").textContent = S.props.length; if (on) $("#clearYes").focus(); }
+$("#clearAllBtn").onclick = () => showClearConfirm(true);
+$("#clearNo").onclick = () => showClearConfirm(false);
+$("#clearYes").onclick = () => {
+  S.cleared = { props: S.props, removedShared: S.removedShared };
+  S.props = []; S.removedShared = []; S.sel = null;
+  showClearConfirm(false); renderPanes(); renderHint(); redraw();
+};
+$("#plist").addEventListener("click", e => {
+  if (e.target.id !== "undoClearBtn" || !S.cleared) return;
+  S.props = S.cleared.props; S.removedShared = S.cleared.removedShared; S.cleared = null;
+  renderPanes(); renderHint(); redraw();
+});
 $("#sampleBtn").onclick = loadSample;
 $("#photoInput").onchange = e => { const f = e.target.files[0]; if (f) loadPhoto(f); e.target.value = ""; };
 $("#darken").oninput = e => { S.darken = +e.target.value; redraw(); };
