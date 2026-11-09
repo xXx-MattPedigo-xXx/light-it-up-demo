@@ -78,6 +78,8 @@ button,input,select{font:inherit; color:inherit}
 .pane-foot{margin-top:auto; padding:12px 16px 16px; font-size:12px; color:var(--muted); border-top:1px solid var(--line)}
 
 /* Props list */
+.list-tools{display:flex; align-items:center; gap:8px; padding:0 16px 8px; font-size:12.5px; color:var(--muted); position:sticky; top:44px; background:var(--panel); z-index:1}
+.list-tools .linkbtn:disabled{color:var(--muted); text-decoration:none; cursor:default; opacity:.6}
 .plist{list-style:none; margin:0; padding:0 8px 8px}
 .prop{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:4px 10px; align-items:start; padding:9px 8px; border-radius:8px; border:1px solid transparent}
 .prop + .prop{margin-top:2px}
@@ -253,8 +255,13 @@ canvas.drawing{cursor:crosshair}
   <div class="work">
     <aside class="pane left" aria-label="Props">
       <div class="pane-head"><h2>Props</h2><span class="meta" id="propCount"></span></div>
+      <div class="list-tools" id="listTools" hidden>
+        <button type="button" class="linkbtn" id="selectAllBtn">Select all</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="linkbtn" id="unselectAllBtn">Unselect all</button>
+      </div>
       <ul class="plist" id="plist"></ul>
-      <div class="pane-foot">Uncheck a prop to leave it out of the estimate. It stays on the house as a dashed outline so you can compare.</div>
+      <div class="pane-foot">Uncheck a prop to leave it out of the estimate. It stays on the house as a dashed outline so you can compare. Use <b>Unselect all</b> to start from nothing and tick only what you want.</div>
     </aside>
 
     <main class="center">
@@ -795,7 +802,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 function renderList(R) {
   const ul = $("#plist");
   $("#propCount").textContent = `${S.props.length} on the house · ${R.inc.length} in estimate`;
-  if (!S.props.length) { ul.innerHTML = `<li class="empty">No props yet. Pick a prop under <b>Add</b>, then drag on the photo where it goes.</li>`; return; }
+  $("#listTools").hidden = !S.props.length;
+  $("#selectAllBtn").disabled = R.inc.length === S.props.length;
+  $("#unselectAllBtn").disabled = R.inc.length === 0;
+  if (!S.props.length) { ul.innerHTML = `<li class="empty">No props yet. Pick a prop under <b>Add</b>, then click two points on the photo where it goes.</li>`; return; }
   ul.innerHTML = R.rows.map(({ p, m, subtotal }) => `
     <li class="prop ${p.id === S.sel ? "sel" : ""} ${p.included ? "" : "off"}" data-id="${p.id}">
       <input type="checkbox" id="inc-${p.id}" data-act="inc" ${p.included ? "checked" : ""} aria-label="Include ${esc(p.name)} in the estimate">
@@ -1054,6 +1064,10 @@ for (const [k, v] of Object.entries(KINDS)) {
 }
 $("#scaleBtn").onclick = () => setMode(S.mode === "scale" ? "select" : "scale");
 $("#selectBtn").onclick = () => setMode("select");
+// Tick or untick every prop's checkbox at once. Props stay on the house either way.
+function includeAll(on) { S.props.forEach(p => p.included = on); renderPanes(); redraw(); }
+$("#selectAllBtn").onclick = () => includeAll(true);
+$("#unselectAllBtn").onclick = () => includeAll(false);
 $("#sampleBtn").onclick = loadSample;
 $("#photoInput").onchange = e => { const f = e.target.files[0]; if (f) loadPhoto(f); e.target.value = ""; };
 $("#darken").oninput = e => { S.darken = +e.target.value; redraw(); };
