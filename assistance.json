@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "intro": "Point at, tab to or tap any control to see what it does and when to use it. Or pick a topic below.",
+  "topics": {
+    "photo-upload": {
+      "group": "Photo",
+      "title": "Upload house photo",
+      "summary": "Pick a photo of your house to design on.",
+      "what": "Opens your files so you can choose a photo of the front of your house. The photo becomes the background you place lights on. Loading a new photo removes the props from the current one, and the scale has to be set again.",
+      "when": "Start here. Use a straight-on photo that shows the whole house, from the roof peak to the ground.",
+      "tips": [
+        "JPG and PNG photos work. Very large photos are shrunk so the designer stays fast.",
+        "See Photo tips for how to take a good one."
+      ]
+    },
+    "photo-camera": {
+      "group": "Photo",
+      "title": "Take a photo",
+      "summary": "Open your phone's camera and photograph your house now.",
+      "what": "Opens the rear camera. The photo you take is used exactly like an uploaded one.",
+      "when": "When you're near your house with your phone. This button only appears on phones and tablets.",
+      "tips": ["Hold the phone sideways and stand across the street, facing the house."]
+    },
+    "photo-sample": {
+      "group": "Photo",
+      "title": "Sample house",
+      "summary": "Load the example house with a ready-made design.",
+      "what": "Replaces the current photo and props with a sample house and 15 example props, already priced. Its garage door is 16 ft wide, which sets the scale.",
+      "when": "To try the designer before using your own photo, or to see what a finished design looks like.",
+      "tips": ["Loading the sample removes any props you added."]
+    },
+    "photo-tips": {
+      "group": "Photo",
+      "title": "Photo tips",
+      "summary": "Advice for a photo that gives accurate sizes and prices.",
+      "what": "Opens a short list of tips under the Photo row. Click it again, or Close, to hide the list.",
+      "when": "Before you take or upload your photo."
+    },
+    "photo-night": {
+      "group": "Photo",
+      "title": "Night",
+      "summary": "Darken the photo so the lights stand out.",
+      "what": "Slide right to make the photo darker, like your house at night. It only changes how the design looks, not the price.",
+      "when": "Any time. It's for looks only."
+    },
+    "photo-preview": {
+      "group": "Photo",
+      "title": "Preview",
+      "summary": "Choose how the lights animate.",
+      "what": "Steady shows the lights on. Twinkle fades bulbs in and out. Chase runs light along each prop. Prices don't change.",
+      "when": "To get a feel for the finished show. Choose Steady if the motion is distracting."
+    },
+    "tool-select": {
+      "group": "Add props",
+      "title": "Select",
+      "summary": "Stop adding props and go back to moving and editing them.",
+      "what": "Turns off whichever Add tool is on. Then click a prop to select it, drag it to move it, drag its square handles to resize it, or press Delete to remove it.",
+      "when": "When you've finished adding props of one kind.",
+      "tips": ["Esc, or clicking the highlighted Add button again, does the same thing."]
+    },
+    "add-roofline": {
+      "group": "Add props",
+      "title": "Roofline",
+      "summary": "Add a straight run of lights along one edge.",
+      "what": "Click where the edge starts, then where it ends. Priced by length: pixels, mounting track and installation per foot.",
+      "when": "For one straight edge, such as a gutter. For a roofline with peaks or corners, use Continuous line.",
+      "tips": ["The tool stays on, so you can add several in a row."]
+    },
+    "add-polyline": {
+      "group": "Add props",
+      "title": "Continuous line",
+      "summary": "One run of lights that follows corners, such as a whole roofline.",
+      "what": "Click each corner in turn. Double-click or press Enter to finish, or click the first point again to close a loop. Backspace removes the last point and Esc drops the line. Priced like a roofline, by total length.",
+      "when": "For rooflines with peaks, outlines around a porch, or any edge that changes direction.",
+      "tips": ["After adding it, select it and drag any corner handle to adjust it."]
+    },
+    "add-window": {
+      "group": "Add props",
+      "title": "Window outline",
+      "summary": "Outline a window or door with lights.",
+      "what": "Click one corner of the window or door, then the opposite corner. Priced by the distance around it.",
+      "when": "For windows, doors and the garage door."
+    },
+    "add-arch": {
+      "group": "Add props",
+      "title": "Arch",
+      "summary": "Add a lighted arch, for example over a walkway.",
+      "what": "Click one corner of the space the arch fills, then the opposite corner. Priced with an arch frame, pixels and installation.",
+      "when": "Along walkways and driveways, often in a row of three or more."
+    },
+    "add-tree": {
+      "group": "Add props",
+      "title": "Mega tree",
+      "summary": "A tall tree made of light strings running down from a center pole.",
+      "what": "Click one top corner of the tree's space, then the opposite bottom corner. Priced by height: pixels on 16 strings, a pole kit and installation.",
+      "when": "As a centerpiece in the yard. It's usually the biggest single item in a display."
+    },
+    "add-matrix": {
+      "group": "Add props",
+      "title": "Matrix",
+      "summary": "A grid of pixels that can show words, pictures and patterns.",
+      "what": "Click one corner of the panel, then the opposite corner. Priced by area: pixels on a 4 in grid, panel frames and installation.",
+      "when": "For a display that shows messages or pictures."
+    },
+    "add-wreath": {
+      "group": "Add props",
+      "title": "Wreath",
+      "summary": "A round ring of lights.",
+      "what": "Click one edge of the wreath, then the opposite edge. It stays round. Priced with a frame, pixels and installation.",
+      "when": "On the front door, a gable or above the garage."
+    },
+    "add-star": {
+      "group": "Add props",
+      "title": "Star",
+      "summary": "A star outlined in lights.",
+      "what": "Click one corner of the star's space, then the opposite corner. It stays square. Priced with a frame, pixels and installation.",
+      "when": "On a roof peak or at the top of a mega tree."
+    },
+    "add-bush": {
+      "group": "Add props",
+      "title": "Bush",
+      "summary": "Light up a bush with a net of pixels or a ring around it.",
+      "what": "Click one corner around the bush, then the opposite corner. Then select it and choose Matrix (a grid of pixels covering the bush, priced by nets) or String (a ring of pixels around its outline, priced per bush).",
+      "when": "For shrubs along the front of the house."
+    },
+    "add-flood": {
+      "group": "Add props",
+      "title": "Floodlight",
+      "summary": "A light that washes a wall or tree with color.",
+      "what": "Click where each floodlight sits on the ground. Each one is priced as a fixture plus installation.",
+      "when": "To color the front of the house, a tree, or a wall behind other props."
+    },
+    "scale-set": {
+      "group": "Scale",
+      "title": "Set scale",
+      "summary": "Tell the designer how big things are in real life.",
+      "what": "Click both ends of something whose size you know, then type its length in feet. All sizes and prices are worked out from this.",
+      "when": "Right after loading your own photo, before adding props. Until it's set, sizes and prices are rough.",
+      "tips": [
+        "A garage door is usually 16 or 8 ft wide. A front door is about 3 ft.",
+        "Measure along the front wall of the house, not something closer or further away."
+      ]
+    },
+    "scale-chip": {
+      "group": "Scale",
+      "title": "Scale",
+      "summary": "How many photo pixels make one foot.",
+      "what": "Shows the current scale, or Not set until you use Set scale.",
+      "when": "Check it after setting the scale. If sizes look wrong, set the scale again."
+    },
+    "assist-mode": {
+      "group": "Help",
+      "title": "Assistance mode",
+      "summary": "Show help for any control in a pane on the right.",
+      "what": "When it's on, the Assistance pane explains whichever control you point at, tab to or tap: what it does and when to use it. Turn it off to close the pane.",
+      "when": "While you're learning the designer.",
+      "tips": ["With it off, pointing at a control for a moment shows a short tooltip with a Show help link."]
+    },
+    "props-checkbox": {
+      "group": "Props list",
+      "title": "Prop checkbox",
+      "summary": "Include a prop in the estimate, or leave it out.",
+      "what": "Ticked props are in the estimate. Unticked props stay on the house as a dashed outline but cost nothing, so you can compare.",
+      "when": "To try your display with and without a prop."
+    },
+    "props-select-all": {
+      "group": "Props list",
+      "title": "Select all",
+      "summary": "Tick every prop.",
+      "what": "Puts every prop on the house into the estimate.",
+      "when": "After unticking several props, to bring them all back."
+    },
+    "props-unselect-all": {
+      "group": "Props list",
+      "title": "Unselect all",
+      "summary": "Untick every prop.",
+      "what": "Takes every prop out of the estimate. The props stay on the house as outlines.",
+      "when": "To start from nothing and tick only the props you want."
+    },
+    "props-clear-all": {
+      "group": "Props list",
+      "title": "Clear all",
+      "summary": "Remove every prop from the house.",
+      "what": "Asks you to confirm first. Afterwards, Undo puts the props back until you add a new prop or load another photo.",
+      "when": "To start a new design on the same photo."
+    },
+    "estimate-line": {
+      "group": "Estimate",
+      "title": "Line item checkbox",
+      "summary": "Remove one cost from the estimate.",
+      "what": "Untick a line, for example the installation on one prop or a controller you already own. The prop stays in the design and the total updates. Put back restores it.",
+      "when": "When you already have some parts, or will install a prop yourself."
+    },
+    "opt-install": {
+      "group": "Estimate",
+      "title": "Professional installation",
+      "summary": "Include installation labor, or price parts only.",
+      "what": "On: each prop includes installation. Off: the estimate shows the parts only, for a do-it-yourself kit.",
+      "when": "Turn it off if you plan to put the lights up yourself."
+    },
+    "opt-show": {
+      "group": "Estimate",
+      "title": "Music show programming",
+      "summary": "Add a light show set to music.",
+      "what": "Three songs sequenced in Light-It-Up for your exact layout, at a flat price.",
+      "when": "If you want your lights to dance to music."
+    },
+    "quote-request": {
+      "group": "Estimate",
+      "title": "Request an installation quote",
+      "summary": "Send your design to the installer for a firm price.",
+      "what": "On the real site this saves your design and photo and sends them to the installer, who confirms the price after a site visit. In this demo it only shows a note.",
+      "when": "When you're happy with the design and want it installed."
+    },
+    "diy-buy": {
+      "group": "Estimate",
+      "title": "Buy the parts in the DIY shop",
+      "summary": "Turn your design into a shopping cart.",
+      "what": "Opens the DIY shop with every part your design needs, rounded up to whole packs and standard sizes. Line items you removed stay out of the cart.",
+      "when": "If you'll install the lights yourself."
+    }
+  }
+}

@@ -199,9 +199,30 @@ canvas.drawing{cursor:crosshair}
 .cline .nm{font-weight:600; font-size:13px}
 .cline .row2{grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px}
 
+/* Assistance mode */
+.check{display:inline-flex; gap:7px; align-items:center; cursor:pointer; font-weight:600}
+.check input{margin:0; width:16px; height:16px; accent-color:var(--accent)}
+.group-note{font-size:12px; color:var(--muted)}
+.work.help-open{grid-template-columns:300px minmax(0,1fr) 340px 300px}
+.help-pane{border-left:1px solid var(--line)}
+.help-pane .pane-head{align-items:center}
+.help-status{padding:0 16px 10px; font-size:12.5px; color:var(--muted)}
+.help-body{padding:0 16px 16px; display:grid; gap:8px; align-content:start; min-width:0}
+.help-body h3{margin:0; font-family:var(--f-display); font-weight:600; font-size:17px; text-wrap:balance}
+.help-body h4{margin:8px 0 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.help-body p{margin:0}
+.help-body ul{margin:0; padding-left:18px; display:grid; gap:4px}
+.help-body ul.help-index{list-style:none; padding-left:0; gap:2px}
+.help-body .lead{color:var(--muted)}
+.help-tip{position:fixed; z-index:30; width:max-content; max-width:min(300px, calc(100vw - 16px)); background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.18); padding:10px 12px; font-size:12.5px; display:grid; gap:6px}
+.help-tip .links{display:flex; flex-wrap:wrap; gap:4px 12px; padding-top:2px}
+@media (max-width:1280px){
+  .work.help-open{grid-template-columns:300px minmax(0,1fr) 340px}
+  .pane.help-pane{position:fixed; top:0; right:0; bottom:0; width:min(340px, 100%); z-index:25; overflow:auto; box-shadow:-8px 0 24px rgba(0,0,0,.2); padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); padding-right:env(safe-area-inset-right,0px)}
+}
 @media (max-width:1180px){
   .app{height:auto}
-  .work{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .work, .work.help-open{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .center{grid-column:1 / -1; order:-1}
   .pane.left{border-right:1px solid var(--line); border-top:1px solid var(--line)}
   .pane.right{border-top:1px solid var(--line); border-left:0}
@@ -212,11 +233,14 @@ canvas.drawing{cursor:crosshair}
   .products{overflow:visible}
 }
 @media (max-width:720px){
-  .work{grid-template-columns:minmax(0,1fr)}
+  .work, .work.help-open{grid-template-columns:minmax(0,1fr)}
   .pane.left{border-right:0}
   .proto{margin-left:0; width:100%}
   .shop-work{grid-template-columns:minmax(0,1fr)}
   .hint{height:112px}
+  /* Phones: help is a bottom sheet so the controls above it can still be tapped. */
+  .pane.help-pane{top:auto; left:0; width:auto; height:44vh; border-left:0; border-top:1px solid var(--line); border-radius:12px 12px 0 0; box-shadow:0 -8px 24px rgba(0,0,0,.2); padding-left:env(safe-area-inset-left,0px)}
+  body.help-open{padding-bottom:44vh}
   .tips{margin-left:0}
   .cats{flex-direction:row; flex-wrap:wrap; border-bottom:1px solid var(--line)}
   .products{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
@@ -241,13 +265,13 @@ canvas.drawing{cursor:crosshair}
     <!-- One row per command group: Photo, Add, Scale. -->
     <div class="group">
       <span class="group-label">Photo</span>
-      <label class="btn file-btn">Upload house photo<input id="photoInput" type="file" accept="image/*"></label>
-      <label class="btn file-btn camera-btn">Take a photo<input id="cameraInput" type="file" accept="image/*" capture="environment"></label>
-      <button class="btn" id="sampleBtn" type="button">Sample house</button>
-      <button class="btn" id="tipsBtn" type="button" aria-expanded="false" aria-controls="tipsPanel">Photo tips</button>
+      <label class="btn file-btn" data-help="photo-upload">Upload house photo<input id="photoInput" type="file" accept="image/*"></label>
+      <label class="btn file-btn camera-btn" data-help="photo-camera">Take a photo<input id="cameraInput" type="file" accept="image/*" capture="environment"></label>
+      <button class="btn" id="sampleBtn" type="button" data-help="photo-sample">Sample house</button>
+      <button class="btn" id="tipsBtn" type="button" data-help="photo-tips" aria-expanded="false" aria-controls="tipsPanel">Photo tips</button>
       <span class="group-extra">
-        <label class="range" for="darken">Night<input id="darken" type="range" min="0" max="0.8" step="0.05" value="0.3"></label>
-        <label class="range" for="preview">Preview
+        <label class="range" for="darken" data-help="photo-night">Night<input id="darken" type="range" min="0" max="0.8" step="0.05" value="0.3"></label>
+        <label class="range" for="preview" data-help="photo-preview">Preview
           <select id="preview" class="btn" style="padding:4px 6px">
             <option value="off">Steady</option>
             <option value="twinkle">Twinkle</option>
@@ -269,13 +293,18 @@ canvas.drawing{cursor:crosshair}
     </div>
     <div class="group" id="addGroup">
       <span class="group-label">Add</span>
-      <button class="btn" id="selectBtn" type="button" aria-pressed="true" title="Select, move and resize props (Esc)">Select</button>
+      <button class="btn" id="selectBtn" type="button" aria-pressed="true" data-help="tool-select">Select</button>
       <span class="group-sep" aria-hidden="true"></span>
     </div>
     <div class="group">
       <span class="group-label">Scale</span>
-      <button class="btn" id="scaleBtn" type="button" aria-pressed="false">Set scale</button>
-      <span id="scaleChip" class="chip"></span>
+      <button class="btn" id="scaleBtn" type="button" aria-pressed="false" data-help="scale-set">Set scale</button>
+      <span id="scaleChip" class="chip" data-help="scale-chip"></span>
+    </div>
+    <div class="group">
+      <span class="group-label">Help</span>
+      <label class="check" for="assistToggle" data-help="assist-mode"><input type="checkbox" id="assistToggle"> Assistance mode</label>
+      <span class="group-note">Explains any control you point at or tap.</span>
     </div>
   </div>
 
@@ -283,11 +312,11 @@ canvas.drawing{cursor:crosshair}
     <aside class="pane left" aria-label="Props">
       <div class="pane-head"><h2>Props</h2><span class="meta" id="propCount"></span></div>
       <div class="list-tools" id="listTools" hidden>
-        <button type="button" class="linkbtn" id="selectAllBtn">Select all</button>
+        <button type="button" class="linkbtn" id="selectAllBtn" data-help="props-select-all">Select all</button>
         <span aria-hidden="true">·</span>
-        <button type="button" class="linkbtn" id="unselectAllBtn">Unselect all</button>
+        <button type="button" class="linkbtn" id="unselectAllBtn" data-help="props-unselect-all">Unselect all</button>
         <span aria-hidden="true">·</span>
-        <button type="button" class="linkbtn" id="clearAllBtn">Clear all</button>
+        <button type="button" class="linkbtn" id="clearAllBtn" data-help="props-clear-all">Clear all</button>
         <span class="confirm" id="clearConfirm" hidden>Remove all <b id="clearCount"></b> props from the house?
           <button type="button" class="linkbtn danger" id="clearYes">Remove</button> ·
           <button type="button" class="linkbtn" id="clearNo">Cancel</button></span>
@@ -308,12 +337,19 @@ canvas.drawing{cursor:crosshair}
       <div class="pane-head"><h2>Estimate</h2><span class="meta" id="estMeta"></span></div>
       <div class="est" id="est"></div>
       <div class="opts">
-        <label class="opt" for="optInstall"><input id="optInstall" type="checkbox" checked><span>Professional installation<small>Adds labor to each prop. Turn off for a DIY kit.</small></span><span class="amt" id="laborAmt"></span></label>
-        <label class="opt" for="optShow"><input id="optShow" type="checkbox"><span>Music show programming<small>Three songs sequenced in Light-It-Up for your layout.</small></span><span class="amt" id="showAmt"></span></label>
+        <label class="opt" for="optInstall" data-help="opt-install"><input id="optInstall" type="checkbox" checked><span>Professional installation<small>Adds labor to each prop. Turn off for a DIY kit.</small></span><span class="amt" id="laborAmt"></span></label>
+        <label class="opt" for="optShow" data-help="opt-show"><input id="optShow" type="checkbox"><span>Music show programming<small>Three songs sequenced in Light-It-Up for your layout.</small></span><span class="amt" id="showAmt"></span></label>
       </div>
       <div class="totals" id="totals"></div>
     </aside>
+
+    <aside class="pane help-pane" id="helpPane" aria-label="Assistance" hidden>
+      <div class="pane-head"><h2>Assistance</h2><button type="button" class="linkbtn" id="helpClose">Close</button></div>
+      <div class="help-status" id="helpStatus"></div>
+      <div class="help-body" id="helpBody" aria-live="polite"></div>
+    </aside>
   </div>
+  <div class="help-tip" id="helpTip" role="tooltip" hidden></div>
   </div>
 
   <div class="view" id="viewShop" hidden>
@@ -889,7 +925,7 @@ function renderList(R) {
   }
   ul.innerHTML = R.rows.map(({ p, m, subtotal }) => `
     <li class="prop ${p.id === S.sel ? "sel" : ""} ${p.included ? "" : "off"}" data-id="${p.id}">
-      <input type="checkbox" id="inc-${p.id}" data-act="inc" ${p.included ? "checked" : ""} aria-label="Include ${esc(p.name)} in the estimate">
+      <input type="checkbox" id="inc-${p.id}" data-act="inc" data-help="props-checkbox" ${p.included ? "checked" : ""} aria-label="Include ${esc(p.name)} in the estimate">
       <button class="prop-main" type="button" data-act="sel">
         <span class="pname"><span class="swatch" style="${swatchStyle(p)}"></span><span class="t" id="pn-${p.id}">${esc(p.name)}</span></span>
         <span class="pdesc">${KINDS[p.kind].label} · ${m.desc}</span>
@@ -920,7 +956,7 @@ function renderEstimate(R) {
   if (!R.inc.length) { el.innerHTML = `<p class="empty" style="padding:8px 0">Check a prop in the list to add it to the estimate.</p>`; }
   else {
     const lineLi = (l, owner) => `<li class="${l.removed ? "rm" : ""}">
-        <input type="checkbox" id="ln-${owner}-${l.key.replace(/\W+/g, "-")}" data-owner="${owner}" data-line="${esc(l.key)}" ${l.removed ? "" : "checked"} aria-label="Include ${esc(l.label)}">
+        <input type="checkbox" id="ln-${owner}-${l.key.replace(/\W+/g, "-")}" data-owner="${owner}" data-help="estimate-line" data-line="${esc(l.key)}" ${l.removed ? "" : "checked"} aria-label="Include ${esc(l.label)}">
         <label for="ln-${owner}-${l.key.replace(/\W+/g, "-")}">${l.label}</label><span class="calc">${lineCalc(l)}</span><span class="amt">${money.format(l.amount)}</span></li>`;
     el.innerHTML = R.inc.map(({ p, lines, subtotal }) => {
       const nRm = lines.filter(l => l.removed).length;
@@ -944,8 +980,8 @@ function renderEstimate(R) {
     ${R.removedCount ? `<div class="rm-note">${R.removedCount} line item${R.removedCount > 1 ? "s" : ""} removed: you'll supply or install ${R.removedCount > 1 ? "them" : "it"} yourself. <button type="button" class="linkbtn" data-restore="all">Put all back</button></div>` : ""}
     <p class="fine">Before tax. ${left ? `${left} prop${left > 1 ? "s" : ""} left out. ` : ""}${S.scaleSet ? "" : "<b>Scale not set, so sizes and prices are rough.</b> "}Prices are examples; the final price is confirmed after a site visit.</p>
     <div class="cta">
-      <button type="button" class="btn ${S.install ? "primary" : ""}" id="quoteBtn" ${R.inc.length ? "" : "disabled"}>Request an installation quote</button>
-      <button type="button" class="btn ${S.install ? "" : "primary"}" id="kitBtn" ${R.inc.length ? "" : "disabled"}>Buy the parts in the DIY shop</button>
+      <button type="button" class="btn ${S.install ? "primary" : ""}" id="quoteBtn" data-help="quote-request" ${R.inc.length ? "" : "disabled"}>Request an installation quote</button>
+      <button type="button" class="btn ${S.install ? "" : "primary"}" id="kitBtn" data-help="diy-buy" ${R.inc.length ? "" : "disabled"}>Buy the parts in the DIY shop</button>
       <div class="notice" id="quoteNote" hidden>On the real site this saves your design and sends it, with the photo, to the installer. They can open it in Light-It-Up's Layout tab.</div></div>`;
 }
 function renderHint() {
@@ -1122,6 +1158,7 @@ function fillCartFromDesign() {
   shopCat = "all"; location.hash = "#shop";
 }
 function route() {
+  hideTip();
   const shop = location.hash === "#shop";
   S.shopOpen = shop;
   $("#viewShop").hidden = !shop; $("#viewDesigner").hidden = shop;
@@ -1141,10 +1178,103 @@ $("#viewShop").addEventListener("click", e => {
   renderShop();
 });
 
+// ---------- Assistance mode ----------
+// Help content comes from assistance.json next to this page (the "database" for now).
+let HELP = null, helpError = false;
+fetch("assistance.json").then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+  .then(d => { HELP = d; renderHelp(); })
+  .catch(() => { helpError = true; renderHelp(); });
+// state: "closed" | "topic" (one topic via Show help) | "mode" (Assistance mode on: follows the pointer)
+const H = { state: "closed", topic: null, tipFor: null, tipTimer: 0, hideTimer: 0, modeTimer: 0 };
+const helpTopic = key => HELP?.topics?.[key];
+function openHelp(state, key) {
+  H.state = state; H.topic = key || null;
+  $("#helpPane").hidden = false; $(".work").classList.add("help-open"); document.body.classList.add("help-open");
+  $("#assistToggle").checked = state === "mode";
+  renderHelp();
+}
+function closeHelp() {
+  H.state = "closed"; $("#helpPane").hidden = true; $(".work").classList.remove("help-open"); document.body.classList.remove("help-open");
+  $("#assistToggle").checked = false;
+}
+function renderHelp() {
+  if (H.state === "closed") return;
+  $("#helpStatus").innerHTML = H.state === "mode"
+    ? "Assistance mode is on. Point at, tab to or tap any control to see its help here."
+    : `Showing one topic. <button type="button" class="linkbtn" data-help-act="mode">Turn on Assistance mode</button> to follow along as you point at controls.`;
+  const body = $("#helpBody");
+  if (helpError) { body.innerHTML = `<p>The help content (<code>assistance.json</code>) couldn't be loaded. It loads when the demo is opened from its web address, such as the shared link or GitHub Pages. Opening the file straight from your computer blocks it.</p>`; return; }
+  if (!HELP) { body.innerHTML = `<p class="lead">Loading help…</p>`; return; }
+  const tp = helpTopic(H.topic);
+  if (!tp) {
+    const groups = {};
+    for (const [k, v] of Object.entries(HELP.topics)) (groups[v.group] ||= []).push([k, v]);
+    body.innerHTML = `<p class="lead">${esc(HELP.intro)}</p>` + Object.entries(groups).map(([g, items]) =>
+      `<h4>${esc(g)}</h4><ul class="help-index">${items.map(([k, v]) => `<li><button type="button" class="linkbtn" data-help-topic="${k}">${esc(v.title)}</button></li>`).join("")}</ul>`).join("");
+    return;
+  }
+  body.innerHTML = `<h3>${esc(tp.title)}</h3><p class="lead">${esc(tp.summary)}</p>
+    <h4>What it does</h4><p>${esc(tp.what)}</p>
+    <h4>When to use it</h4><p>${esc(tp.when)}</p>
+    ${tp.tips?.length ? `<h4>Tips</h4><ul>${tp.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <p><button type="button" class="linkbtn" data-help-topic="">All help topics</button></p>`;
+}
+
+const helpTip = $("#helpTip");
+function showTip(el) {
+  const key = el.dataset.help, tp = helpTopic(key); if (!tp) return;
+  H.tipFor = key;
+  helpTip.innerHTML = `<b>${esc(tp.title)}</b><span>${esc(tp.summary)}</span>
+    <span class="links"><button type="button" class="linkbtn" data-tip-act="show">Show help</button><button type="button" class="linkbtn" data-tip-act="mode">Turn on Assistance mode</button></span>`;
+  helpTip.hidden = false;
+  const r = el.getBoundingClientRect(), w = helpTip.offsetWidth, h = helpTip.offsetHeight;
+  let top = r.bottom + 8; if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
+  helpTip.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+  helpTip.style.top = top + "px";
+}
+function hideTip() { clearTimeout(H.tipTimer); helpTip.hidden = true; H.tipFor = null; }
+function followPointer(key) {
+  // Wait a moment so passing over other controls on the way to the pane doesn't change the topic.
+  clearTimeout(H.modeTimer);
+  if (H.topic === key) return;
+  H.modeTimer = setTimeout(() => { H.topic = key; renderHelp(); }, 250);
+}
+document.addEventListener("pointerover", e => {
+  if (e.target.closest("#helpTip")) { clearTimeout(H.hideTimer); return; }
+  const el = e.target.closest("[data-help]"); if (!el) return;
+  if (H.state === "mode") { followPointer(el.dataset.help); return; }
+  if (e.pointerType !== "mouse" && e.pointerType !== "pen") return; // no hover tooltips on touch screens
+  clearTimeout(H.hideTimer); clearTimeout(H.tipTimer);
+  if (H.tipFor === el.dataset.help && !helpTip.hidden) return;
+  H.tipTimer = setTimeout(() => showTip(el), 450);
+});
+document.addEventListener("pointerout", e => {
+  const el = e.target.closest("[data-help], #helpTip"); if (!el || el.contains(e.relatedTarget)) return;
+  clearTimeout(H.tipTimer); clearTimeout(H.modeTimer);
+  H.hideTimer = setTimeout(hideTip, 250);
+});
+document.addEventListener("pointerdown", e => { if (!e.target.closest("#helpTip")) hideTip(); }, true);
+document.addEventListener("focusin", e => {
+  const el = e.target.closest?.("[data-help]");
+  if (el && H.state === "mode" && H.topic !== el.dataset.help) { H.topic = el.dataset.help; renderHelp(); }
+});
+helpTip.addEventListener("click", e => {
+  const act = e.target.closest("[data-tip-act]")?.dataset.tipAct; if (!act) return;
+  const key = H.tipFor; hideTip();
+  openHelp(act === "mode" ? "mode" : "topic", key);
+});
+$("#helpPane").addEventListener("click", e => {
+  const b = e.target.closest("[data-help-topic], [data-help-act]"); if (!b) return;
+  if (b.dataset.helpAct === "mode") openHelp("mode", H.topic);
+  else { H.topic = b.dataset.helpTopic || null; renderHelp(); }
+});
+$("#helpClose").onclick = closeHelp;
+$("#assistToggle").onchange = e => e.target.checked ? openHelp("mode", null) : closeHelp();
+
 // ---------- Wiring ----------
 const addGroup = $("#addGroup");
 for (const [k, v] of Object.entries(KINDS)) {
-  const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.dataset.add = k; b.textContent = v.label; b.setAttribute("aria-pressed", "false");
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.dataset.add = k; b.dataset.help = "add-" + k; b.textContent = v.label; b.setAttribute("aria-pressed", "false");
   b.onclick = () => setMode(S.mode === "add:" + k ? "select" : "add:" + k);
   addGroup.appendChild(b);
 }
@@ -1219,6 +1349,7 @@ $("#totals").addEventListener("click", e => {
 
 document.addEventListener("keydown", e => {
   if (S.shopOpen) return;
+  if (e.key === "Escape" && !helpTip.hidden) { hideTip(); return; }
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName) && document.activeElement.type !== "checkbox";
   if (S.poly && !typing) {
     if (e.key === "Enter") { e.preventDefault(); finishPoly(false); return; }
