@@ -49,8 +49,7 @@ button,input,select{font:inherit; color:inherit}
 .brand{font-family:var(--f-display); font-weight:700; font-size:19px; letter-spacing:-.01em; display:flex; align-items:center; gap:8px}
 .brand .bulb{width:10px;height:10px;border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent)}
 .brand small{font-family:var(--f-body); font-weight:500; font-size:13px; color:var(--muted)}
-.proto{margin-left:auto; font-size:12px; color:var(--muted); text-align:right}
-.copyright{color:var(--ink)}
+.proto{margin-left:auto; font-size:12px; color:var(--muted)}
 
 .toolbar{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding-block:8px;
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
@@ -203,7 +202,7 @@ canvas.drawing{cursor:crosshair}
 @media (max-width:720px){
   .work{grid-template-columns:minmax(0,1fr)}
   .pane.left{border-right:0}
-  .proto{margin-left:0; width:100%; text-align:left}
+  .proto{margin-left:0; width:100%}
   .shop-work{grid-template-columns:minmax(0,1fr)}
   .cats{flex-direction:row; flex-wrap:wrap; border-bottom:1px solid var(--line)}
   .products{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
@@ -220,7 +219,7 @@ canvas.drawing{cursor:crosshair}
       <a href="#designer" class="tab" data-view="designer">Design your display</a>
       <a href="#shop" class="tab" data-view="shop">DIY shop <span class="badge" id="cartBadge" hidden></span></a>
     </nav>
-    <div class="proto">Prototype · example prices · nothing is sent or charged<br><span class="copyright">© 2026 John Pedigo. All rights reserved.</span></div>
+    <div class="proto">Prototype · example prices · nothing is sent or charged</div>
   </header>
 
   <div class="view" id="viewDesigner">
@@ -259,7 +258,7 @@ canvas.drawing{cursor:crosshair}
       <div class="list-tools" id="listTools" hidden>
         <button type="button" class="linkbtn" id="selectAllBtn">Select all</button>
         <span aria-hidden="true">·</span>
-        <button type="button" class="linkbtn" id="unselectAllBtn">Unselect all</button>
+        <button type="button" class="linkbtn" id="unselectAllBtn" title="Unselect all button, copyright John Pedigo 2026 all rights reserved." aria-label="Unselect all">Unselect all</button>
       </div>
       <ul class="plist" id="plist"></ul>
       <div class="pane-foot">Uncheck a prop to leave it out of the estimate. It stays on the house as a dashed outline so you can compare. Use <b>Unselect all</b> to start from nothing and tick only what you want.</div>
