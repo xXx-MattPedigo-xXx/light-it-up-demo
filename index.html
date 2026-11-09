@@ -56,6 +56,12 @@ button,input,select{font:inherit; color:inherit}
   border-bottom:1px solid var(--line); background:var(--bg)}
 .group{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .group-label{flex:none; width:52px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.camera-btn{display:none}
+@media (pointer:coarse){ .camera-btn{display:inline-block} }
+.tips{margin-left:58px; max-width:72ch; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:13px}
+.tips-head{display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+.tips ol{margin:8px 0 4px; padding-left:20px; display:grid; gap:4px}
+.tips .fine{margin:4px 0 0}
 .group-extra{display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; margin-left:8px}
 .group-sep{width:1px; align-self:stretch; background:var(--line); margin:2px 4px}
 .btn{border:1px solid var(--line); background:var(--panel); padding:6px 10px; border-radius:6px; cursor:pointer; white-space:nowrap}
@@ -211,6 +217,7 @@ canvas.drawing{cursor:crosshair}
   .proto{margin-left:0; width:100%}
   .shop-work{grid-template-columns:minmax(0,1fr)}
   .hint{height:112px}
+  .tips{margin-left:0}
   .cats{flex-direction:row; flex-wrap:wrap; border-bottom:1px solid var(--line)}
   .products{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
   .cart{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
@@ -235,7 +242,9 @@ canvas.drawing{cursor:crosshair}
     <div class="group">
       <span class="group-label">Photo</span>
       <label class="btn file-btn">Upload house photo<input id="photoInput" type="file" accept="image/*"></label>
+      <label class="btn file-btn camera-btn">Take a photo<input id="cameraInput" type="file" accept="image/*" capture="environment"></label>
       <button class="btn" id="sampleBtn" type="button">Sample house</button>
+      <button class="btn" id="tipsBtn" type="button" aria-expanded="false" aria-controls="tipsPanel">Photo tips</button>
       <span class="group-extra">
         <label class="range" for="darken">Night<input id="darken" type="range" min="0" max="0.8" step="0.05" value="0.3"></label>
         <label class="range" for="preview">Preview
@@ -246,6 +255,17 @@ canvas.drawing{cursor:crosshair}
           </select>
         </label>
       </span>
+    </div>
+    <div class="tips" id="tipsPanel" hidden>
+      <div class="tips-head"><b>Getting a good house photo</b><button type="button" class="linkbtn" id="tipsClose">Close</button></div>
+      <ol>
+        <li><b>Face the house straight on.</b> Stand across the street, level with the middle of the house. Photos from an angle make sizes and prices less accurate.</li>
+        <li><b>Fit the whole house in</b>, from the roof peak to the ground, with a little sky above. Hold the phone sideways.</li>
+        <li><b>Include something you know the size of</b>, like the garage door (usually 16 or 8 ft) or the front door (about 3 ft). You'll use it to set the scale.</li>
+        <li><b>Shoot in daylight or at dusk</b> so the roof edges and windows are easy to see. Avoid the sun right behind the house.</li>
+        <li><b>Clear the view</b> if you can: move cars out of the driveway and stand where trees don't block the roofline.</li>
+      </ol>
+      <p class="fine">In this demo your photo never leaves your device.</p>
     </div>
     <div class="group" id="addGroup">
       <span class="group-label">Add</span>
@@ -1149,7 +1169,10 @@ $("#plist").addEventListener("click", e => {
   renderPanes(); renderHint(); redraw();
 });
 $("#sampleBtn").onclick = loadSample;
-$("#photoInput").onchange = e => { const f = e.target.files[0]; if (f) loadPhoto(f); e.target.value = ""; };
+$("#photoInput").onchange = $("#cameraInput").onchange = e => { const f = e.target.files[0]; if (f) loadPhoto(f); e.target.value = ""; };
+function showTips(on) { $("#tipsPanel").hidden = !on; $("#tipsBtn").setAttribute("aria-expanded", String(on)); $("#tipsBtn").setAttribute("aria-pressed", String(on)); }
+$("#tipsBtn").onclick = () => showTips($("#tipsPanel").hidden);
+$("#tipsClose").onclick = () => { showTips(false); $("#tipsBtn").focus(); };
 $("#darken").oninput = e => { S.darken = +e.target.value; redraw(); };
 const prevSel = $("#preview"); prevSel.value = S.preview;
 prevSel.onchange = e => { S.preview = e.target.value; if (S.preview === "off") { cancelAnimationFrame(raf); raf = 0; redraw(); } else startLoop(); };
