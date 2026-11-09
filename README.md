@@ -12,7 +12,3 @@ A clickable prototype of a website where customers design a Christmas light disp
 > **Prototype.** Prices are examples. Nothing is saved to a server, sent or charged. Everything you do stays in your own browser.
 
 The whole demo is one file, `index.html`, with no build step. It's published with GitHub Pages from the `main` branch.
-
----
-
-© 2026 John Pedigo. All rights reserved.
