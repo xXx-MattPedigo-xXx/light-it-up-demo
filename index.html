@@ -35,14 +35,17 @@
   --stage:#06080f; --chip:#1c2230; color-scheme:dark; }
 
 html,body{height:100%}
+html{-webkit-text-size-adjust:100%; text-size-adjust:100%} /* iOS otherwise inflates text when the phone is turned sideways */
 body{background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:14px; line-height:1.4;}
 *{box-sizing:border-box}
 button,input,select{font:inherit; color:inherit}
 :focus-visible{outline:2px solid var(--sel); outline-offset:2px}
 
 [hidden]{display:none!important}
-.app{display:grid; grid-template-rows:auto 1fr; height:100%; min-height:0}
-.view{display:grid; grid-template-rows:auto 1fr; min-height:0}
+/* minmax(0,1fr) column: with the default auto column, one wide non-wrapping child (the swipeable tool row on phones)
+   would stretch the whole page beyond the screen. */
+.app{display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; height:100%; min-height:0}
+.view{display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; min-height:0}
 .topbar{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding-block:10px;
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
   background:var(--panel); border-bottom:1px solid var(--line)}
@@ -124,7 +127,10 @@ button,input,select{font:inherit; color:inherit}
 .hint input[type=number]{width:72px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:var(--panel)}
 .stage-wrap{flex:1; min-height:0; padding:0 16px 16px; display:flex; align-items:flex-start; justify-content:center; overflow:auto}
 .stage{position:relative; background:var(--stage); border-radius:10px; overflow:hidden; box-shadow:0 1px 0 var(--line), 0 10px 30px rgba(0,0,0,.18); max-width:100%}
-canvas{display:block; touch-action:none; cursor:default}
+canvas{display:block; touch-action:none; cursor:default; -webkit-touch-callout:none; user-select:none}
+/* Move / edit with nothing selected: a swipe over the photo scrolls the page instead of getting stuck on the canvas.
+   Once a prop is selected (or a drawing tool is on) the canvas takes every touch so a finger can drag. */
+canvas.scrolls{touch-action:pan-y pinch-zoom}
 canvas.drawing{cursor:crosshair}
 
 /* Estimate */
@@ -237,16 +243,55 @@ canvas.drawing{cursor:crosshair}
   .pane.left{border-right:0}
   .proto{margin-left:0; width:100%}
   .shop-work{grid-template-columns:minmax(0,1fr)}
-  .hint{height:112px}
+  .hint{height:128px}
   /* Phones: help is a bottom sheet so the controls above it can still be tapped. */
-  .pane.help-pane{top:auto; left:0; width:auto; height:44vh; border-left:0; border-top:1px solid var(--line); border-radius:12px 12px 0 0; box-shadow:0 -8px 24px rgba(0,0,0,.2); padding-left:env(safe-area-inset-left,0px)}
-  body.help-open{padding-bottom:44vh}
+  .pane.help-pane{top:auto; left:0; width:auto; height:44vh; height:44dvh; border-left:0; border-top:1px solid var(--line); border-radius:12px 12px 0 0; box-shadow:0 -8px 24px rgba(0,0,0,.2); padding-left:env(safe-area-inset-left,0px)}
+  body.help-open{padding-bottom:44vh; padding-bottom:44dvh}
+  body:not(.help-open){padding-bottom:env(safe-area-inset-bottom,0px)} /* keep the last line clear of the iPhone home bar */
+  /* Each toolbar group becomes one swipeable row instead of several wrapped rows, so the house is on the first screen.
+     The next button peeks in at the right edge to show there is more. */
+  .toolbar .group{flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none;
+    margin-inline:calc(-1 * max(16px, env(safe-area-inset-left,0px))) calc(-1 * max(16px, env(safe-area-inset-right,0px)));
+    padding-inline:max(16px, env(safe-area-inset-left,0px)) max(16px, env(safe-area-inset-right,0px))}
+  .toolbar .group::-webkit-scrollbar{display:none}
+  .toolbar .group > *{flex:none}
+  /* Sticky offsets count from the row's padding edge. The shadow extends the label's background over the left gutter so
+     scrolled-off buttons don't show there. */
+  .toolbar .group-label{position:sticky; left:0; z-index:1; background:var(--bg); box-shadow:-16px 0 0 0 var(--bg);
+    align-self:stretch; display:flex; align-items:center} /* full row height, so scrolled-off buttons are covered completely */
+  .group-extra{flex-wrap:nowrap}
+  .group-note{display:none}
   .tips{margin-left:0}
   .cats{flex-direction:row; flex-wrap:wrap; border-bottom:1px solid var(--line)}
   .products{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
   .cart{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
   .hint,.stage-wrap,.pane-head,.est,.opts,.totals,.pane-foot{padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
 }
+/* Buttons for what a keyboard does on a desktop (Enter, Esc, Backspace). Added to the hint on touch screens only. They sit in
+   the hint rather than over the photo so they never cover a spot you might want to tap. */
+.hint-actions{flex-basis:100%; display:flex; gap:8px}
+.hint-actions .btn{padding-inline:16px}
+
+/* Touch screens: finger-sized targets (44 px is the Apple and Google guideline). */
+@media (pointer:coarse){
+  button,.btn,.tab,a,summary,select{touch-action:manipulation} /* quick taps on +/- don't zoom the page */
+  .btn,.tab{min-height:44px}
+  /* iOS Safari zooms the whole page when a field with text under 16 px gets focus. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px}
+  .editor input[type=text]{padding:10px 8px}
+  .hint input[type=number]{width:84px; padding:8px 6px}
+  .stepper button{width:44px; height:44px}
+  .cbtn{width:34px; height:34px}
+  .check{min-height:44px}
+  .check input,.prop input[type=checkbox],.opt input{width:24px; height:24px}
+  .lines li{min-height:36px}
+  .lines li input{width:24px; height:24px}
+  .eg-head{min-height:44px}
+  .range input{width:120px; height:28px}
+  .opt{padding-block:6px}
+  .linkbtn{padding-block:8px}
+}
+@media (pointer:coarse) and (min-width:721px){ .hint{height:108px} } /* room for the action row on tablets and sideways phones */
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
 </style>
 
@@ -696,10 +741,12 @@ function draw(t) {
   ctx.setLineDash([]);
   // selection
   const sp = S.props.find(p => p.id === S.sel);
+  cv.classList.toggle("scrolls", S.mode === "select" && !sp); // see canvas.scrolls in the CSS
   if (sp) {
     ctx.strokeStyle = "#6aa1ff"; ctx.lineWidth = 2 / s; outline(sp, 6 / s);
     ctx.fillStyle = "#ffffff";
-    for (const h of handles(sp)) { ctx.beginPath(); ctx.rect(h.x - 5 / s, h.y - 5 / s, 10 / s, 10 / s); ctx.fill(); ctx.stroke(); }
+    const hs = lastPointerType === "touch" ? 9 : 5; // handle half-size in screen px
+    for (const h of handles(sp)) { ctx.beginPath(); ctx.rect(h.x - hs / s, h.y - hs / s, 2 * hs / s, 2 * hs / s); ctx.fill(); ctx.stroke(); }
   }
   // drafts
   if (S.poly) {
@@ -737,16 +784,20 @@ function redraw() { if (!raf) draw(performance.now()); }
 function startLoop() { if (S.preview !== "off" && !raf) raf = requestAnimationFrame(loop); }
 
 // ---------- Hit testing and pointer input ----------
+// Fingers are much less precise than a mouse, so grab areas grow when the last pointer was a finger.
+let lastPointerType = "mouse";
+const grabPx = () => lastPointerType === "touch" ? 22 : 10; // screen px around a line or handle that still counts as a hit
+const isTouchUI = () => matchMedia("(pointer:coarse)").matches;
 function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S.view.s, y: (e.clientY - r.top) / S.view.s }; }
 function distSeg(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy; let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)); }
 function hit(p, w) {
-  const tol = 10 / S.view.s;
+  const tol = grabPx() / S.view.s;
   if (p.kind === "roofline") return distSeg(w.x, w.y, p.x1, p.y1, p.x2, p.y2) < tol;
   if (p.kind === "polyline") {
     const segs = p.pts.map((a, i) => [a, p.pts[i + 1] || (p.closed ? p.pts[0] : null)]).filter(([, b]) => b);
     return segs.some(([a, b]) => distSeg(w.x, w.y, a[0], a[1], b[0], b[1]) < tol);
   }
-  if (p.kind === "flood") return Math.hypot(w.x - p.x, w.y - p.y) < 18 / S.view.s;
+  if (p.kind === "flood") return Math.hypot(w.x - p.x, w.y - p.y) < (lastPointerType === "touch" ? 28 : 18) / S.view.s;
   return w.x >= p.x - tol && w.x <= p.x + p.w + tol && w.y >= p.y - tol && w.y <= p.y + p.h + tol;
 }
 function topHit(w) {
@@ -796,13 +847,14 @@ function cancelPoly() { S.poly = null; S.polyHover = null; renderHint(); redraw(
 cv.addEventListener("dblclick", () => { if (isPolyMode() && S.poly) finishPoly(false); });
 
 cv.addEventListener("pointerdown", e => {
+  lastPointerType = e.pointerType || lastPointerType;
   const w = toWorld(e);
   if (isPolyMode()) {
     const sc = S.view.s;
     if (!S.poly) { S.poly = { pts: [[w.x, w.y]] }; S.polyHover = [w.x, w.y]; renderHint(); redraw(); return; }
     const pts = S.poly.pts, first = pts[0], last = pts.at(-1);
-    if (pts.length >= 3 && Math.hypot(w.x - first[0], w.y - first[1]) * sc < 10) { finishPoly(true); return; }
-    if (Math.hypot(w.x - last[0], w.y - last[1]) * sc < 5) return; // same spot, e.g. the second click of a double-click
+    if (pts.length >= 3 && Math.hypot(w.x - first[0], w.y - first[1]) * sc < grabPx()) { finishPoly(true); return; }
+    if (Math.hypot(w.x - last[0], w.y - last[1]) * sc < grabPx() / 2) return; // same spot, e.g. the second click of a double-click
     pts.push([w.x, w.y]); renderHint(); redraw(); return;
   }
   if (S.mode.startsWith("add:") && KINDS[S.mode.slice(4)].draw === "point") { createProp(S.mode.slice(4), { x: w.x, y: w.y }); return; }
@@ -817,14 +869,19 @@ cv.addEventListener("pointerdown", e => {
   cv.setPointerCapture(e.pointerId);
   const sp = S.props.find(p => p.id === S.sel);
   if (sp) {
-    const h = handles(sp).find(h => Math.hypot(h.x - w.x, h.y - w.y) < 10 / S.view.s);
+    const h = handles(sp).find(h => Math.hypot(h.x - w.x, h.y - w.y) < grabPx() / S.view.s);
     if (h) { S.drag = { type: "handle", k: h.k, p: sp, start: { ...sp } }; return; }
   }
   const p = topHit(w);
+  // With nothing selected the canvas lets vertical swipes scroll the page, so a finger landing on a prop may be the start of a scroll.
+  // On a touch screen the prop is therefore only selected when the finger lifts without moving (a tap).
+  if (e.pointerType === "touch" && p && !S.sel) { S.tap = { id: p.id, x: e.clientX, y: e.clientY }; return; }
+  S.tap = null;
   select(p ? p.id : null);
   if (p) S.drag = { type: "move", p, x0: w.x, y0: w.y, start: { ...p } };
 });
 cv.addEventListener("pointermove", e => {
+  if (e.pointerType) lastPointerType = e.pointerType;
   if (S.poly) { const w = toWorld(e); S.polyHover = [w.x, w.y]; redraw(); return; }
   if (S.anchor) { updateDraft(toWorld(e)); redraw(); return; }
   const d = S.drag; if (!d) { hoverCursor(e); return; }
@@ -857,13 +914,23 @@ cv.addEventListener("pointerup", e => {
     if (Math.hypot(e.clientX - S.anchor.sx, e.clientY - S.anchor.sy) > 6) finishTwoPoint(toWorld(e));
     return;
   }
+  const t = S.tap; S.tap = null;
+  if (t && Math.hypot(e.clientX - t.x, e.clientY - t.y) < 10) { select(t.id); return; }
   const d = S.drag; S.drag = null;
   if (d?.moved) renderPanes();
+});
+// The browser can take a touch away (it starts scrolling the page, or a system gesture such as an edge swipe interrupts it).
+// Abort whatever the finger was doing so a prop isn't left stuck to it; a half-moved prop snaps back.
+cv.addEventListener("pointercancel", () => {
+  S.tap = null;
+  if (S.anchor) S.anchor.down = false;
+  const d = S.drag; S.drag = null;
+  if (d?.moved) { Object.assign(d.p, d.start); renderPanes(); redraw(); }
 });
 function hoverCursor(e) {
   if (S.mode !== "select") return;
   const w = toWorld(e), sp = S.props.find(p => p.id === S.sel);
-  if (sp && handles(sp).some(h => Math.hypot(h.x - w.x, h.y - w.y) < 10 / S.view.s)) cv.style.cursor = "nwse-resize";
+  if (sp && handles(sp).some(h => Math.hypot(h.x - w.x, h.y - w.y) < grabPx() / S.view.s)) cv.style.cursor = "nwse-resize";
   else cv.style.cursor = topHit(w) ? "move" : "default";
 }
 
@@ -985,6 +1052,40 @@ function renderEstimate(R) {
       <div class="notice" id="quoteNote" hidden>On the real site this saves your design and sends it, with the photo, to the installer. They can open it in Light-It-Up's Layout tab.</div></div>`;
 }
 function renderHint() {
+  renderHintText();
+  const h = $("#hint");
+  // Touch screens have no Esc, Enter, Backspace or Delete key: say "tap" and leave the keys out, and add buttons that do the
+  // same jobs. Skipped while the hint holds the scale form, which has live fields and handlers.
+  if (!isTouchUI() || h.querySelector("input, button")) return;
+  h.innerHTML = touchText(h.innerHTML);
+  const acts = touchActions();
+  if (acts) h.insertAdjacentHTML("beforeend", `<div class="hint-actions" role="group" aria-label="Drawing actions">${acts}</div>`);
+}
+function touchText(html) {
+  return html
+    .replace(/ ?<span class="chip">[^<]*(?:Esc|Backspace)[^<]*<\/span>/g, "")
+    .replace(/Double-click or Enter to finish; click the first point/, "Tap Finish when you're done; tap the first point")
+    .replace(/; double-click or Enter to finish/, "; tap Finish when you're done")
+    .replace(/, <b>Delete<\/b> to remove/, ", or use <b>Delete</b> under Props to remove")
+    .replace(/ or front door \(3 ft\)/, "")
+    .replace(/\bdouble-click\b/g, "double-tap").replace(/\bClick\b/g, "Tap").replace(/\bclick\b/g, "tap");
+}
+function touchActions() {
+  const btns = [];
+  if (isPolyMode() && S.poly) btns.push(["undo", "Undo"], ["finish", "Finish"], ["cancel", "Cancel"]);
+  else if (S.anchor) btns.push(["cancel", "Cancel"]);
+  else if (S.mode.startsWith("add:")) btns.push(["done", "Done"]);
+  else if (S.mode === "scale" && !S.pendingScale) btns.push(["done", "Cancel"]);
+  return btns.map(([a, t]) => `<button type="button" class="btn${a === "finish" ? " primary" : ""}" data-draw-act="${a}"${a === "finish" && S.poly.pts.length < 2 ? " disabled" : ""}>${t}</button>`).join("");
+}
+$("#hint").addEventListener("click", e => {
+  const a = e.target.closest("[data-draw-act]")?.dataset.drawAct; if (!a) return;
+  if (a === "finish") finishPoly(false);
+  else if (a === "undo") { S.poly.pts.pop(); if (!S.poly.pts.length) cancelPoly(); else { renderHint(); redraw(); } }
+  else if (a === "cancel") { if (S.poly) cancelPoly(); else if (S.anchor) cancelAnchor(); else setMode("select"); }
+  else setMode("select");
+});
+function renderHintText() {
   const h = $("#hint");
   if (S.notice) { h.innerHTML = `<b>${esc(S.notice)}</b>`; S.notice = ""; return; }
   if (S.mode === "scale") {
